@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="hero">
+  <h1>Add Doctor</h1>
+  <p>Admin can add doctor and availability details.</p>
+</div>
+
+<div class="form-wrap">
+  <h2>Doctor Details</h2>
+
+  <form method="POST">
+    <div class="input">
+      <label>Doctor Name</label>
+      <input type="text" name="name" required placeholder="Dr. Name" />
+    </div>
+
+    <div class="input">
+      <label>Specialization</label>
+      <input type="text" name="specialization" required placeholder="Cardiology / Dentist" />
+    </div>
+
+    <div class="input">
+      <label>Available Days</label>
+      <input type="text" name="available_days" required placeholder="Mon, Tue, Wed" />
+    </div>
+
+    <div class="input">
+      <label>Time Slots</label>
+      <input type="text" name="time_slots" required placeholder="10AM-1PM, 4PM-7PM" />
+    </div>
+
+    <div style="margin-top:14px;">
+      <button class="btn btn-primary" type="submit">Add Doctor</button>
+    </div>
+  </form>
+</div>
+
+{% endblock %}

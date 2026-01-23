@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="hero">
+  <h1>Welcome, {{ session.get("name") }}</h1>
+  <p>Your appointments and booking history are shown here.</p>
+</div>
+
+<table class="table" style="margin-top:18px;">
+  <thead>
+    <tr>
+      <th>Doctor</th>
+      <th>Specialization</th>
+      <th>Date</th>
+      <th>Time</th>
+      <th>Status</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for a in appointments %}
+    <tr>
+      <td>{{ a.doctor_name }}</td>
+      <td>{{ a.doctor_specialization }}</td>
+      <td>{{ a.date }}</td>
+      <td>{{ a.time }}</td>
+      <td>
+        <span class="badge
+          {% if a.status == 'Approved' or a.status == 'Completed' %}success{% endif %}
+          {% if a.status == 'Cancelled' %}danger{% endif %}
+        ">
+          {{ a.status }}
+        </span>
+      </td>
+      <td>
+        {% if a.status == 'Pending' or a.status == 'Approved' %}
+          <a class="btn" href="/cancel/{{ a.id }}">Cancel</a>
+        {% else %}
+          <span style="color:var(--muted); font-size:.9rem;">No Action</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% else %}
+    <tr>
+      <td colspan="6" style="color:var(--muted);">No appointments yet.</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

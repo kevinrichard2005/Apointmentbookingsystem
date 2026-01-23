@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="hero">
+  <h1>Medical Appointment Booking Made Simple</h1>
+  <p>
+    Connect with certified healthcare professionals instantly. Our platform offers 
+    <b>24/7 availability, real-time scheduling, and secure consultations</b>.
+    Built with modern technology for a seamless healthcare experience.
+  </p>
+
+  <div style="margin-top:24px; display:flex; gap:12px; flex-wrap:wrap;">
+    <a class="btn btn-primary btn-icon" href="/doctors">
+      <span>👨‍⚕️</span> Book Appointment Now
+    </a>
+    <a class="btn btn-icon" href="/doctors">
+      <span>🔍</span> Find Doctors
+    </a>
+    <a class="btn btn-icon" href="/#features">
+      <span>✨</span> Learn More
+    </a>
+  </div>
+</div>
+
+<!-- Stats Section -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <span class="number">{{ stats.doctors if stats else 25 }}+</span>
+    <span class="label">Certified Doctors</span>
+  </div>
+  <div class="stat-card">
+    <span class="number">{{ stats.appointments if stats else 1000 }}+</span>
+    <span class="label">Appointments Booked</span>
+  </div>
+  <div class="stat-card">
+    <span class="number">{{ stats.specializations if stats else 15 }}+</span>
+    <span class="label">Medical Specializations</span>
+  </div>
+  <div class="stat-card">
+    <span class="number">24/7</span>
+    <span class="label">Available Support</span>
+  </div>
+</div>
+
+<!-- Features Section -->
+<div id="features" style="margin-top: 40px;">
+  <h2 style="font-size: 1.8rem; margin-bottom: 20px;">🌟 Why Choose MediBook?</h2>
+  
+  <div class="grid">
+    <div class="card">
+      <h3>⚡ Instant Booking</h3>
+      <p>Book appointments in under 60 seconds with our streamlined process.</p>
+      <ul style="margin-top: 10px; padding-left: 20px; color: var(--muted);">
+        <li>Real-time availability</li>
+        <li>Instant confirmation</li>
+        <li>Mobile-friendly interface</li>
+      </ul>
+    </div>
+    
+    <div class="card">
+      <h3>🔒 Secure & Private</h3>
+      <p>Your health data is protected with enterprise-grade security.</p>
+      <ul style="margin-top: 10px; padding-left: 20px; color: var(--muted);">
+        <li>HIPAA compliant</li>
+        <li>End-to-end encryption</li>
+        <li>Secure payment processing</li>
+      </ul>
+    </div>
+    
+    <div class="card">
+      <h3>🔄 Flexible Management</h3>
+      <p>Full control over your appointments with easy modifications.</p>
+      <ul style="margin-top: 10px; padding-left: 20px; color: var(--muted);">
+        <li>Reschedule anytime</li>
+        <li>Cancel with one click</li>
+        <li>Appointment reminders</li>
+      </ul>
+    </div>
+    
+    <div class="card">
+      <h3>📱 Multi-Platform</h3>
+      <p>Access from any device - desktop, tablet, or mobile.</p>
+      <ul style="margin-top: 10px; padding-left: 20px; color: var(--muted);">
+        <li>Responsive design</li>
+        <li>Mobile app coming soon</li>
+        <li>Cross-browser compatible</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- How It Works -->
+<div style="margin-top: 40px; padding: 30px; border-radius: 20px; background: rgba(16,26,45,.4); border: 1px solid var(--border);">
+  <h2 style="font-size: 1.8rem; margin-bottom: 25px;">📋 How It Works</h2>
+  
+  <div style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: center;">
+    <div style="flex: 1; min-width: 200px; text-align: center;">
+      <div style="width: 50px; height: 50px; background: linear-gradient(90deg, var(--primary), var(--primary2)); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; font-weight: bold;">1</div>
+      <h4>Sign Up</h4>
+      <p style="color: var(--muted);">Create your free account in seconds</p>
+    </div>
+    
+    <div style="flex: 1; min-width: 200px; text-align: center;">
+      <div style="width: 50px; height: 50px; background: linear-gradient(90deg, var(--primary), var(--primary2)); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; font-weight: bold;">2</div>
+      <h4>Find Doctor</h4>
+      <p style="color: var(--muted);">Browse specialists by category</p>
+    </div>
+    
+    <div style="flex: 1; min-width: 200px; text-align: center;">
+      <div style="width: 50px; height: 50px; background: linear-gradient(90deg, var(--primary), var(--primary2)); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; font-weight: bold;">3</div>
+      <h4>Book Slot</h4>
+      <p style="color: var(--muted);">Choose date & time that fits you</p>
+    </div>
+    
+    <div style="flex: 1; min-width: 200px; text-align: center;">
+      <div style="width: 50px; height: 50px; background: linear-gradient(90deg, var(--primary), var(--primary2)); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; font-weight: bold;">4</div>
+      <h4>Consult</h4>
+      <p style="color: var(--muted);">Visit clinic or consult online</p>
+    </div>
+  </div>
+</div>
+
+<!-- Testimonials -->
+<div style="margin-top: 40px;">
+  <h2 style="font-size: 1.8rem; margin-bottom: 20px;">💬 What Our Patients Say</h2>
+  
+  <div class="grid">
+    <div class="card">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+        <div style="width: 40px; height: 40px; background: linear-gradient(90deg, var(--primary), var(--primary2)); border-radius: 50%;"></div>
+        <div>
+          <h4 style="margin: 0;">Sarah Johnson</h4>
+          <p style="color: var(--muted); font-size: 0.9rem; margin: 0;">Patient</p>
+        </div>
+      </div>
+      <p>"Found a specialist within minutes and got same-day appointment. The platform is incredibly user-friendly!"</p>
+    </div>
+    
+    <div class="card">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+        <div style="width: 40px; height: 40px; background: linear-gradient(90deg, var(--primary), var(--primary2)); border-radius: 50%;"></div>
+        <div>
+          <h4 style="margin: 0;">Michael Chen</h4>
+          <p style="color: var(--muted); font-size: 0.9rem; margin: 0;">Regular User</p>
+        </div>
+      </div>
+      <p>"Rescheduling used to be a hassle. Now I can manage all family appointments from one dashboard."</p>
+    </div>
+    
+    <div class="card">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+        <div style="width: 40px; height: 40px; background: linear-gradient(90deg, var(--primary), var(--primary2)); border-radius: 50%;"></div>
+        <div>
+          <h4 style="margin: 0;">Dr. Rajesh Kumar</h4>
+          <p style="color: var(--muted); font-size: 0.9rem; margin: 0;">Cardiologist</p>
+        </div>
+      </div>
+      <p>"As a doctor, this platform has helped me manage my schedule efficiently and reduced no-shows significantly."</p>
+    </div>
+  </div>
+</div>
+
+<!-- CTA Section -->
+<div style="margin-top: 40px; text-align: center; padding: 40px; border-radius: 20px; background: linear-gradient(135deg, rgba(79,70,229,.1), rgba(124,58,237,.1)); border: 1px solid rgba(124,58,237,.2);">
+  <h2 style="font-size: 2rem; margin-bottom: 15px;">Ready to Get Started?</h2>
+  <p style="color: var(--muted); max-width: 600px; margin: 0 auto 25px;">
+    Join thousands of satisfied patients and healthcare providers. Book your first appointment today!
+  </p>
+  <a class="btn btn-primary btn-icon" href="/register" style="font-size: 1.1rem; padding: 14px 28px;">
+    <span>🚀</span> Get Started Free
+  </a>
+  <p style="margin-top: 15px; color: var(--muted); font-size: 0.9rem;">
+    No credit card required • 30-day free trial
+  </p>
+</div>
+
+{% endblock %}

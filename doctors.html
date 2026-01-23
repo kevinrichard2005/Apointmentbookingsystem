@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="hero">
+  <h1>Available Doctors</h1>
+  <p>Select a doctor and book your appointment instantly.</p>
+</div>
+
+<div class="grid">
+  {% for d in doctors %}
+  <div class="card">
+    <h3>{{ d.name }}</h3>
+    <p><b>Specialization:</b> {{ d.specialization }}</p>
+    <p><b>Days:</b> {{ d.available_days }}</p>
+    <p><b>Slots:</b> {{ d.time_slots }}</p>
+    <div style="margin-top:12px;">
+      <a class="btn btn-primary" href="/book/{{ d.id }}">Book Now</a>
+    </div>
+  </div>
+  {% else %}
+  <div class="card" style="grid-column: span 12;">
+    <h3>No doctors available</h3>
+    <p>Please check again later or contact admin.</p>
+  </div>
+  {% endfor %}
+</div>
+
+{% endblock %}

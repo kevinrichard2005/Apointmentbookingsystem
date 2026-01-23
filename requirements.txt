@@ -1,0 +1,4 @@
+
+Flask==2.3.3  # or Django, FastAPI, etc.
+gunicorn==20.1.0
+# other dependencies...

@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="hero">
+  <h1>Admin Dashboard</h1>
+  <p>Manage doctors, appointments, and system overview.</p>
+  <div style="margin-top:14px;">
+    <a class="btn btn-primary" href="/admin/add-doctor">+ Add Doctor</a>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h3>👤 Users</h3>
+    <p>Total users: <b>{{ users_count }}</b></p>
+  </div>
+  <div class="card">
+    <h3>🩺 Doctors</h3>
+    <p>Total doctors: <b>{{ doctors_count }}</b></p>
+  </div>
+  <div class="card" style="grid-column: span 12;">
+    <h3>📌 Appointments</h3>
+    <p>Total appointments: <b>{{ appointments_count }}</b></p>
+  </div>
+</div>
+
+<h2 style="margin-top:18px; font-size:1.3rem;">All Appointments</h2>
+
+<table class="table" style="margin-top:12px;">
+  <thead>
+    <tr>
+      <th>User</th>
+      <th>Doctor</th>
+      <th>Date</th>
+      <th>Time</th>
+      <th>Status</th>
+      <th>Update</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for a in appointments %}
+    <tr>
+      <td>{{ a.user_name }}</td>
+      <td>{{ a.doctor_name }}</td>
+      <td>{{ a.date }}</td>
+      <td>{{ a.time }}</td>
+      <td>
+        <span class="badge
+          {% if a.status == 'Approved' or a.status == 'Completed' %}success{% endif %}
+          {% if a.status == 'Cancelled' %}danger{% endif %}
+        ">{{ a.status }}</span>
+      </td>
+      <td>
+        <form method="POST" action="/admin/update-status/{{ a.id }}" style="display:flex; gap:8px;">
+          <select name="status" class="btn" style="padding:8px 10px;">
+            <option value="Pending" {% if a.status == 'Pending' %}selected{% endif %}>Pending</option>
+            <option value="Approved" {% if a.status == 'Approved' %}selected{% endif %}>Approved</option>
+            <option value="Completed" {% if a.status == 'Completed' %}selected{% endif %}>Completed</option>
+            <option value="Cancelled" {% if a.status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+          </select>
+          <button class="btn btn-primary" type="submit">Update</button>
+        </form>
+      </td>
+    </tr>
+    {% else %}
+    <tr>
+      <td colspan="6" style="color:var(--muted);">No appointments found.</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}

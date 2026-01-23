@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+  <title>{{ title if title else "MediBook - Appointment Booking" }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🩺</text></svg>">
+</head>
+<body>
+  <div class="container">
+    <!-- Enhanced Navbar -->
+    <div class="nav">
+      <div class="brand">
+        <span style="margin-right: 5px;">🩺</span>Medi<span>Book</span>
+      </div>
+
+      <!-- Mobile Menu Toggle -->
+      <button class="menu-toggle" id="menuToggle" aria-label="Menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+
+      <div class="nav-links" id="navLinks">
+        <!-- Main Navigation -->
+        <a class="btn" href="/">🏠 Home</a>
+        <a class="btn" href="/doctors">👨‍⚕️ Doctors</a>
+        <a class="btn" href="/about">ℹ️ About</a>
+        <a class="btn" href="/contact">📞 Contact</a>
+        
+        <!-- User/Auth Navigation -->
+        {% if session.get("user_id") %}
+          {% if session.get("role") == "admin" %}
+            <a class="btn btn-primary" href="/admin">⚙️ Admin</a>
+          {% else %}
+            <a class="btn btn-primary" href="/dashboard">📊 Dashboard</a>
+          {% endif %}
+          <a class="btn" href="/logout">🚪 Logout</a>
+        {% else %}
+          <a class="btn" href="/login">🔑 Login</a>
+          <a class="btn btn-primary" href="/register">📝 Register</a>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="flash {{ category }}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- Main Content -->
+    {% block content %}{% endblock %}
+
+    <!-- Simple Footer -->
+    <footer style="margin-top: 50px; padding: 20px 0; text-align: center; border-top: 1px solid var(--border); color: var(--muted);">
+      <p>© 2024 MediBook - Appointment Booking System</p>
+      <p style="margin-top: 10px; font-size: 0.9rem;">
+        <a href="/about" style="color: var(--muted); margin-right: 15px;">About</a>
+        <a href="/contact" style="color: var(--muted); margin-right: 15px;">Contact</a>
+        <a href="/doctors" style="color: var(--muted);">Doctors</a>
+      </p>
+    </footer>
+  </div>
+
+  <!-- Mobile Menu JavaScript -->
+  <script>
+    // Mobile menu toggle
+    const menuToggle = document.getElementById('menuToggle');
+    const navLinks = document.getElementById('navLinks');
+    
+    if (menuToggle && navLinks) {
+      menuToggle.addEventListener('click', () => {
+        navLinks.classList.toggle('active');
+        menuToggle.classList.toggle('active');
+      });
+      
+      // Close menu when clicking outside on mobile
+      document.addEventListener('click', (event) => {
+        if (window.innerWidth <= 768) {
+          if (!navLinks.contains(event.target) && !menuToggle.contains(event.target)) {
+            navLinks.classList.remove('active');
+            menuToggle.classList.remove('active');
+          }
+        }
+      });
+      
+      // Close menu when clicking a link
+      document.querySelectorAll('.nav-links a').forEach(link => {
+        link.addEventListener('click', () => {
+          if (window.innerWidth <= 768) {
+            navLinks.classList.remove('active');
+            menuToggle.classList.remove('active');
+          }
+        });
+      });
+    }
+    
+    // Smooth scrolling for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function(e) {
+        e.preventDefault();
+        const targetId = this.getAttribute('href');
+        if(targetId !== '#') {
+          const targetElement = document.querySelector(targetId);
+          if(targetElement) {
+            window.scrollTo({
+              top: targetElement.offsetTop - 80,
+              behavior: 'smooth'
+            });
+          }
+        }
+      });
+    });
+    
+    // Prevent form resubmission on refresh
+    if (window.history.replaceState) {
+      window.history.replaceState(null, null, window.location.href);
+    }
+    
+    // Add loading state to buttons
+    document.querySelectorAll('form').forEach(form => {
+      form.addEventListener('submit', function() {
+        const submitBtn = this.querySelector('button[type="submit"]');
+        if (submitBtn) {
+          const originalText = submitBtn.innerHTML;
+          submitBtn.innerHTML = 'Processing...';
+          submitBtn.classList.add('loading');
+          submitBtn.disabled = true;
+          
+          // Revert after 5 seconds (safety)
+          setTimeout(() => {
+            submitBtn.innerHTML = originalText;
+            submitBtn.classList.remove('loading');
+            submitBtn.disabled = false;
+          }, 5000);
+        }
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="hero">
+  <h1>Book Appointment</h1>
+  <p>Doctor: <b>{{ doctor.name }}</b> ({{ doctor.specialization }})</p>
+</div>
+
+<div class="form-wrap">
+  <h2>Choose Date & Time</h2>
+
+  <form method="POST">
+    <div class="input">
+      <label>Date</label>
+      <input type="date" name="date" required />
+    </div>
+
+    <div class="input">
+      <label>Time</label>
+      <input type="text" name="time" required placeholder="Example: 10:00 AM" />
+    </div>
+
+    <div style="margin-top:14px;">
+      <button class="btn btn-primary" type="submit">Confirm Booking</button>
+    </div>
+  </form>
+</div>
+
+
+{% endblock %}
