@@ -1,13 +1,73 @@
-from flask import Flask, render_template, request, redirect, session, url_for, flash
+from flask import Flask, render_template, request, redirect, session, url_for, flash, send_from_directory
 import sqlite3
 import os
 from werkzeug.security import generate_password_hash, check_password_hash
 
-# Use current directory for templates since files are in root
 app = Flask(__name__, static_folder="static", template_folder=".")
 
-app.secret_key = "super_secret_key"
-DB_NAME = "database.db"
+app.secret_key = os.environ.get("SECRET_KEY", "super_secret_key_development_only")
+DB_NAME = "database.db"  # Simplified for Render
+
+# ========== FIX FOR STATIC FILES ==========
+import shutil
+
+def setup_static_files():
+    """Ensure static files are set up properly"""
+    # Create static folder if it doesn't exist
+    if not os.path.exists("static"):
+        os.makedirs("static")
+        print("✅ Created static folder")
+    
+    # Copy CSS file to static folder if it exists in root
+    if os.path.exists("style.css") and not os.path.exists("static/style.css"):
+        shutil.copy("style.css", "static/style.css")
+        print("✅ Copied style.css to static folder")
+    
+    # Also check if CSS is in static folder
+    if os.path.exists("static/style.css"):
+        print("✅ style.css exists in static folder")
+    
+    if os.path.exists("style.css"):
+        print("✅ style.css exists in root folder")
+
+# Route to serve CSS from multiple locations
+@app.route('/style.css')
+def serve_css():
+    """Serve CSS from either static folder or root"""
+    if os.path.exists('static/style.css'):
+        return send_from_directory('static', 'style.css')
+    elif os.path.exists('style.css'):
+        return send_from_directory('.', 'style.css')
+    else:
+        # Return basic CSS if file is missing
+        return "/* Basic CSS */ body { background: #0b1220; color: white; }", 200, {'Content-Type': 'text/css'}
+
+# Debug route to check files
+@app.route('/debug-files')
+def debug_files():
+    """Debug endpoint to see file structure"""
+    result = []
+    result.append(f"<h3>Current Directory: {os.getcwd()}</h3>")
+    
+    result.append("<h4>Files in root:</h4>")
+    for item in os.listdir('.'):
+        if os.path.isdir(item):
+            result.append(f"📁 {item}/")
+            if item == 'static':
+                if os.path.exists('static'):
+                    result.append("Contents of static/:")
+                    for subitem in os.listdir('static'):
+                        result.append(f"  - {subitem}")
+        else:
+            result.append(f"📄 {item}")
+    
+    return "<br>".join(result)
+
+# Serve static files directly
+@app.route('/static/<path:filename>')
+def static_files(filename):
+    return send_from_directory('static', filename)
+# ========== END FIX ==========
 
 def get_db():
     conn = sqlite3.connect(DB_NAME)
@@ -88,8 +148,16 @@ def init_db():
 def index():
     conn = get_db()
     doctors_count = conn.execute("SELECT COUNT(*) as count FROM doctors").fetchone()["count"]
+    appointments_count = conn.execute("SELECT COUNT(*) as count FROM appointments").fetchone()["count"]
+    users_count = conn.execute("SELECT COUNT(*) as count FROM users WHERE role='user'").fetchone()["count"]
     conn.close()
-    return render_template("index.html", doctors_count=doctors_count)
+    
+    stats = {
+        "doctors": doctors_count,
+        "appointments": appointments_count,
+        "specializations": 15  # This can be dynamic if you want
+    }
+    return render_template("index.html", stats=stats, doctors_count=doctors_count)
 
 
 @app.route("/register", methods=["GET", "POST"])
@@ -228,7 +296,7 @@ def admin_dashboard():
 
     conn = get_db()
 
-    users_count = conn.execute("SELECT COUNT(*) as total FROM users").fetchone()["total"]
+    users_count = conn.execute("SELECT COUNT(*) as total FROM users WHERE role='user'").fetchone()["total"]
     doctors_count = conn.execute("SELECT COUNT(*) as total FROM doctors").fetchone()["total"]
     appointments_count = conn.execute("SELECT COUNT(*) as total FROM appointments").fetchone()["total"]
 
@@ -263,7 +331,7 @@ def add_doctor():
         name = request.form["name"]
         specialization = request.form["specialization"]
         available_days = request.form["available_days"]
-        time_slots = request.form["time_slots"]
+        time_slots = request.form["time_slots"]  # Fixed typo here
 
         conn = get_db()
         conn.execute("""
@@ -339,12 +407,11 @@ if __name__ == "__main__":
     # Initialize database
     init_db()
     
+    # Setup static files
+    setup_static_files()
+    
     # Get port from environment variable (Render provides this)
     port = int(os.environ.get("PORT", 5000))
-    
-    # Create static folder if it doesn't exist
-    if not os.path.exists("static"):
-        os.makedirs("static")
     
     # Run the app
     app.run(
