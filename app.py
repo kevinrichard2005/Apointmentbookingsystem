@@ -3,7 +3,8 @@ import sqlite3
 import os
 from werkzeug.security import generate_password_hash, check_password_hash
 
-app = Flask(__name__, static_folder="static", template_folder="templates")
+# Use current directory for templates since files are in root
+app = Flask(__name__, static_folder="static", template_folder=".")
 
 app.secret_key = "super_secret_key"
 DB_NAME = "database.db"
@@ -85,13 +86,6 @@ def init_db():
 # -------------------- MAIN ROUTES --------------------
 @app.route("/")
 def index():
-    # Debug information
-    print("CURRENT DIR:", os.getcwd())
-    print("FILES:", os.listdir())
-    print("TEMPLATES EXISTS:", os.path.exists("templates"))
-    if os.path.exists("templates"):
-        print("TEMPLATES FILES:", os.listdir("templates"))
-    
     conn = get_db()
     doctors_count = conn.execute("SELECT COUNT(*) as count FROM doctors").fetchone()["count"]
     conn.close()
@@ -348,9 +342,13 @@ if __name__ == "__main__":
     # Get port from environment variable (Render provides this)
     port = int(os.environ.get("PORT", 5000))
     
+    # Create static folder if it doesn't exist
+    if not os.path.exists("static"):
+        os.makedirs("static")
+    
     # Run the app
     app.run(
         host='0.0.0.0',
         port=port,
-        debug=False  # Set to False in production
+        debug=False
     )
