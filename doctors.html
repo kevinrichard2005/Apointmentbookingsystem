@@ -13,6 +13,14 @@
     <p><b>Specialization:</b> {{ d.specialization }}</p>
     <p><b>Days:</b> {{ d.available_days }}</p>
     <p><b>Slots:</b> {{ d.time_slots }}</p>
+    
+    <!-- Show booked slots count if any -->
+    {% if booked_counts and d.id in booked_counts %}
+    <p style="color: #ef4444; font-size: 0.9rem; margin-top: 5px;">
+      ⚠️ {{ booked_counts[d.id] }} slot(s) already booked today
+    </p>
+    {% endif %}
+    
     <div style="margin-top:12px;">
       <a class="btn btn-primary" href="/book/{{ d.id }}">Book Now</a>
     </div>

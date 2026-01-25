@@ -12,19 +12,50 @@
   <form method="POST">
     <div class="input">
       <label>Date</label>
-      <input type="date" name="date" required />
+      <input type="date" name="date" required min="{{ today }}" />
     </div>
 
     <div class="input">
       <label>Time</label>
       <input type="text" name="time" required placeholder="Example: 10:00 AM" />
+      <small style="color: var(--muted); display: block; margin-top: 5px;">
+        Format: HH:MM AM/PM (e.g., 9:00 AM, 2:30 PM)
+      </small>
     </div>
 
-    <div style="margin-top:14px;">
+    <div style="margin-top: 14px;">
       <button class="btn btn-primary" type="submit">Confirm Booking</button>
+      <a class="btn" href="/doctors" style="margin-left: 10px;">Back to Doctors</a>
     </div>
   </form>
+  
+  {% if user_upcoming and user_upcoming|length > 0 %}
+  <div style="margin-top: 20px; padding: 15px; border-radius: 12px; background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.3);">
+    <h4 style="color: #eab308; margin-bottom: 10px;">⚠️ Your Upcoming Appointments</h4>
+    {% for app in user_upcoming %}
+    <p style="margin: 5px 0; color: var(--muted); font-size: 0.9rem;">
+      {{ app.date }} at {{ app.time }} with Dr. {{ app.doctor_name }}
+    </p>
+    {% endfor %}
+    <p style="margin-top: 10px; color: #eab308; font-size: 0.9rem; font-weight: 500;">
+      <i>You cannot book multiple appointments at the same time.</i>
+    </p>
+  </div>
+  {% endif %}
+  
+  {% if booked_slots and booked_slots|length > 0 %}
+  <div style="margin-top: 15px; padding: 15px; border-radius: 12px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3);">
+    <h4 style="color: #ef4444; margin-bottom: 10px;">⛔ Already Booked Slots for This Doctor</h4>
+    {% for slot in booked_slots %}
+    <p style="margin: 5px 0; color: var(--muted); font-size: 0.9rem;">
+      {{ slot.date }} at {{ slot.time }}
+    </p>
+    {% endfor %}
+    <p style="margin-top: 10px; color: #ef4444; font-size: 0.9rem; font-weight: 500;">
+      <i>These slots are already booked by other patients.</i>
+    </p>
+  </div>
+  {% endif %}
 </div>
-
 
 {% endblock %}

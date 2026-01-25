@@ -57,6 +57,13 @@
       {% endif %}
     {% endwith %}
 
+    <!-- Add this after your existing flash messages in base.html -->
+{% if booked_slots %}
+<div class="flash warn" style="border-color: rgba(234,179,8,.4); background: rgba(234,179,8,.1);">
+  <strong>⚠️ Note:</strong> Some doctors have booked slots for today. Check availability before booking.
+</div>
+{% endif %}
+
     <!-- Main Content -->
     {% block content %}{% endblock %}
 
