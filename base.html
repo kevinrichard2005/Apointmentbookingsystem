@@ -4,10 +4,68 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
   <title>{{ title if title else "MediBook - Appointment Booking" }}</title>
- <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-<!-- Backup CSS link -->
-<link rel="stylesheet" href="/style.css" onerror="console.log('Static CSS failed, using backup')">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <!-- Backup CSS link -->
+  <link rel="stylesheet" href="/style.css" onerror="console.log('Static CSS failed, using backup')">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🩺</text></svg>">
+  <style>
+    /* Chatbot specific styles */
+    .chat-message {
+      margin-bottom: 15px;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .chat-message.user {
+      align-items: flex-end;
+    }
+    
+    .chat-message.ai {
+      align-items: flex-start;
+    }
+    
+    .message-bubble {
+      padding: 12px 16px;
+      border-radius: 18px;
+      max-width: 80%;
+      word-wrap: break-word;
+      white-space: pre-line;
+      line-height: 1.5;
+    }
+    
+    .chat-message.user .message-bubble {
+      background: linear-gradient(90deg, var(--primary), var(--primary2));
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+    
+    .chat-message.ai .message-bubble {
+      background: rgba(255,255,255,.08);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 4px;
+    }
+    
+    .message-time {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    
+    .suggestion-chip {
+      padding: 8px 12px;
+      background: rgba(79,70,229,.15);
+      border: 1px solid rgba(79,70,229,.3);
+      border-radius: 20px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .suggestion-chip:hover {
+      background: rgba(79,70,229,.25);
+      transform: translateY(-2px);
+    }
+  </style>
 </head>
 <body>
   <div class="container">
@@ -30,6 +88,8 @@
         <a class="btn" href="/doctors">👨‍⚕️ Doctors</a>
         <a class="btn" href="/about">ℹ️ About</a>
         <a class="btn" href="/contact">📞 Contact</a>
+        <!-- AI Chatbot Link -->
+        <a class="btn" href="/chatbot">🤖 AI Assistant</a>
         
         <!-- User/Auth Navigation -->
         {% if session.get("user_id") %}
@@ -57,12 +117,11 @@
       {% endif %}
     {% endwith %}
 
-    <!-- Add this after your existing flash messages in base.html -->
-{% if booked_slots %}
-<div class="flash warn" style="border-color: rgba(234,179,8,.4); background: rgba(234,179,8,.1);">
-  <strong>⚠️ Note:</strong> Some doctors have booked slots for today. Check availability before booking.
-</div>
-{% endif %}
+    {% if booked_slots %}
+    <div class="flash warn" style="border-color: rgba(234,179,8,.4); background: rgba(234,179,8,.1);">
+      <strong>⚠️ Note:</strong> Some doctors have booked slots for today. Check availability before booking.
+    </div>
+    {% endif %}
 
     <!-- Main Content -->
     {% block content %}{% endblock %}
@@ -73,9 +132,20 @@
       <p style="margin-top: 10px; font-size: 0.9rem;">
         <a href="/about" style="color: var(--muted); margin-right: 15px;">About</a>
         <a href="/contact" style="color: var(--muted); margin-right: 15px;">Contact</a>
-        <a href="/doctors" style="color: var(--muted);">Doctors</a>
+        <a href="/doctors" style="color: var(--muted); margin-right: 15px;">Doctors</a>
+        <a href="/chatbot" style="color: var(--muted);">AI Assistant</a>
       </p>
     </footer>
+  </div>
+
+  <!-- Floating Chatbot Button -->
+  <div id="floating-chatbot" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000;">
+    <button onclick="location.href='/chatbot'" style="width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--primary2)); border: none; color: white; font-size: 24px; cursor: pointer; box-shadow: 0 4px 20px rgba(79,70,229,0.4); display: flex; align-items: center; justify-content: center; transition: all 0.3s ease;">
+      🤖
+    </button>
+    <div style="position: absolute; bottom: 70px; right: 0; background: var(--card); padding: 10px 15px; border-radius: 10px; border: 1px solid var(--border); box-shadow: var(--shadow); display: none;" id="chatbot-tooltip">
+      <p style="margin: 0; font-size: 0.9rem;">Need help? Ask our AI Assistant!</p>
+    </div>
   </div>
 
   <!-- Mobile Menu JavaScript -->
@@ -111,6 +181,28 @@
       });
     }
     
+    // Floating chatbot tooltip
+    const floatingBtn = document.getElementById('floating-chatbot');
+    const tooltip = document.getElementById('chatbot-tooltip');
+    
+    if (floatingBtn && tooltip) {
+      floatingBtn.addEventListener('mouseenter', () => {
+        tooltip.style.display = 'block';
+      });
+      
+      floatingBtn.addEventListener('mouseleave', () => {
+        tooltip.style.display = 'none';
+      });
+      
+      // Touch support for mobile
+      floatingBtn.addEventListener('touchstart', () => {
+        tooltip.style.display = 'block';
+        setTimeout(() => {
+          tooltip.style.display = 'none';
+        }, 3000);
+      });
+    }
+    
     // Smooth scrolling for anchor links
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
       anchor.addEventListener('click', function(e) {
@@ -140,13 +232,11 @@
         if (submitBtn) {
           const originalText = submitBtn.innerHTML;
           submitBtn.innerHTML = 'Processing...';
-          submitBtn.classList.add('loading');
           submitBtn.disabled = true;
           
           // Revert after 5 seconds (safety)
           setTimeout(() => {
             submitBtn.innerHTML = originalText;
-            submitBtn.classList.remove('loading');
             submitBtn.disabled = false;
           }, 5000);
         }
