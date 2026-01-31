@@ -516,6 +516,7 @@ select:focus {
     padding: 12px 16px;
   }
 }
+
 /* Add to your existing style.css file */
 
 /* Slot availability indicators */
@@ -835,3 +836,58 @@ select:focus {
       max-width: 90% !important;
     }
   }
+ /* Password toggle button styling */
+.password-toggle-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  transition: color 0.2s ease;
+}
+
+.password-toggle-btn:hover {
+  color: var(--text);
+}
+
+.password-toggle-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Input with toggle button */
+.password-input-container {
+  position: relative;
+}
+
+.password-input-container input {
+  width: 100%;
+  padding: 12px 40px 12px 14px !important;
+}
+
+/* Make sure input styles are consistent */
+.input input[type="password"],
+.input input[type="text"] {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.841);
+  color: var(--text);
+  outline: none;
+}
+
+.input input[type="password"]:focus,
+.input input[type="text"]:focus {
+  border-color: rgba(124,58,237,.55);
+  box-shadow: 0 0 0 4px rgba(124,58,237,.15);
+}

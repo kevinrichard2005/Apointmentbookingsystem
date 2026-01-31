@@ -11,7 +11,16 @@
 
     <div class="input">
       <label>Password</label>
-      <input type="password" name="password" required placeholder="Enter password" />
+      <div style="position: relative;">
+        <input type="password" name="password" id="loginPassword" required placeholder="Enter password" style="width: 100%; padding: 12px 40px 12px 14px; border-radius: 14px; border: 1px solid var(--border); background: rgba(255,255,255,.05); color: var(--text);" />
+        <button type="button" id="loginTogglePassword" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); cursor: pointer; padding: 6px; border-radius: 6px; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; transition: all 0.2s ease;">
+          <!-- Eye icon SVG -->
+          <svg id="loginEyeIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+        </button>
+      </div>
     </div>
 
     <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
@@ -25,5 +34,67 @@
   </p>
 </div>
 
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const togglePassword = document.getElementById('loginTogglePassword');
+    const passwordInput = document.getElementById('loginPassword');
+    const eyeIcon = document.getElementById('loginEyeIcon');
+    
+    if (togglePassword && passwordInput && eyeIcon) {
+      togglePassword.addEventListener('click', function() {
+        // Toggle the type attribute
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        
+        // Toggle the eye icon
+        if (type === 'password') {
+          // Show closed eye (password hidden)
+          eyeIcon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+          eyeIcon.style.stroke = '#ffffff';
+          togglePassword.style.background = 'rgba(255, 255, 255, 0.1)';
+          togglePassword.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+        } else {
+          // Show crossed eye (password visible)
+          eyeIcon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+          eyeIcon.style.stroke = '#4f46e5';
+          togglePassword.style.background = 'rgba(79, 70, 229, 0.2)';
+          togglePassword.style.borderColor = 'rgba(79, 70, 229, 0.4)';
+        }
+        
+        // Focus back on the input
+        passwordInput.focus();
+      });
+      
+      // Add hover effect
+      togglePassword.addEventListener('mouseenter', function() {
+        const type = passwordInput.getAttribute('type');
+        if (type === 'password') {
+          this.style.background = 'rgba(255, 255, 255, 0.15)';
+          this.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+        } else {
+          this.style.background = 'rgba(79, 70, 229, 0.3)';
+          this.style.borderColor = 'rgba(79, 70, 229, 0.5)';
+        }
+      });
+      
+      togglePassword.addEventListener('mouseleave', function() {
+        const type = passwordInput.getAttribute('type');
+        if (type === 'password') {
+          this.style.background = 'rgba(255, 255, 255, 0.1)';
+          this.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+        } else {
+          this.style.background = 'rgba(79, 70, 229, 0.2)';
+          this.style.borderColor = 'rgba(79, 70, 229, 0.4)';
+        }
+      });
+    }
+  });
+</script>
+
+<style>
+  #loginTogglePassword:hover {
+    transform: translateY(-50%) scale(1.05);
+  }
+</style>
 
 {% endblock %}
