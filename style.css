@@ -63,6 +63,8 @@ select {
   box-shadow: var(--shadow);
   position: relative;
   margin-bottom: 24px;
+  flex-wrap: nowrap;
+  /* Prevent brand and links from splitting */
 }
 
 /* Brand on left */
@@ -85,8 +87,10 @@ select {
 /* Nav links on right */
 .nav-links {
   display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
+  gap: 8px;
+  /* Reduced gap slightly to fit more items */
+  flex-wrap: nowrap;
+  /* Force links on one line for desktop */
   align-items: center;
 }
 
@@ -129,7 +133,8 @@ select {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 10px 20px;
+  padding: 10px 16px;
+  /* Slightly reduced horizontal padding */
   border-radius: 12px;
   border: 1px solid var(--border);
   background: rgba(255, 255, 255, .06);
@@ -139,8 +144,11 @@ select {
   transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
   white-space: nowrap;
-  font-size: 0.95rem;
-  gap: 8px;
+  font-size: 0.9rem;
+  /* Slightly smaller font for better fit */
+  gap: 6px;
+  flex-shrink: 0;
+  /* Prevent buttons from shrinking */
 }
 
 .btn-pill {
@@ -399,8 +407,8 @@ select:focus {
   }
 }
 
-/* MOBILE STYLES (max-width: 768px) */
-@media(max-width: 768px) {
+/* MOBILE STYLES (max-width: 1024px) */
+@media(max-width: 1024px) {
   .container {
     width: 94%;
     padding: 15px 0;
