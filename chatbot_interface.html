@@ -1,163 +1,158 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="hero">
-  <h1>AI Health Assistant</h1>
-  <p>Get instant answers about appointments, doctors, and basic medical guidance.</p>
+<div class="hero" style="padding: 2.5rem 1.5rem; margin-bottom: 2rem;">
+  <div style="display: flex; align-items: center; justify-content: center; gap: 1rem;">
+    <div
+      style="width: 48px; height: 48px; background: linear-gradient(135deg, var(--primary), var(--secondary)); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+      🤖</div>
+    <div style="text-align: left;">
+      <h1 style="margin: 0; font-size: 1.75rem;">MediBook <span
+          style="background: linear-gradient(135deg, var(--primary), var(--secondary)); -webkit-background-clip: text; background-clip: text; color: transparent;">AI</span>
+      </h1>
+      <p style="margin: 0; font-size: 0.9rem;">Your personal health assistant is online</p>
+    </div>
+  </div>
 </div>
 
-<div class="grid" style="margin-top: 20px;">
-  <div class="card" style="grid-column: span 8;">
-    <h3>💬 Chat with MediBook AI</h3>
-    <div id="chat-container" style="height: 500px; overflow-y: auto; margin-top: 15px; padding: 15px; border-radius: 12px; background: rgba(16,26,45,.5); border: 1px solid var(--border);">
-      <!-- Chat messages will appear here -->
+<div class="grid" style="align-items: start; gap: 2rem;">
+  <div class="card"
+    style="grid-column: span 8; border-radius: 24px; padding: 0.5rem; display: flex; flex-direction: column; background: var(--glass); border: 1px solid var(--card-border); height: 600px;">
+    <!-- Chat Header -->
+    <div
+      style="padding: 1rem 1.5rem; border-bottom: 1px solid var(--card-border); display: flex; justify-content: space-between; align-items: center;">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <div
+          style="width: 10px; height: 10px; background: var(--success); border-radius: 50%; box-shadow: 0 0 10px var(--success);">
+        </div>
+        <span style="font-weight: 600; font-size: 0.9rem;">Active Now</span>
+      </div>
+      <button class="btn" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;" onclick="location.reload()">Clear
+        Chat</button>
+    </div>
+
+    <!-- Message Area -->
+    <div id="chat-container"
+      style="flex: 1; overflow-y: auto; padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
       <div class="chat-message ai">
         <div class="message-bubble">
-          <strong>MediBook AI:</strong> Hello! I'm your healthcare assistant. I can help you with appointment booking, finding doctors, and basic medical information. How can I assist you today?
+          Hello! I'm your healthcare assistant. I can help you with appointment booking, finding doctors, and basic
+          medical information. How can I assist you today?
         </div>
         <div class="message-time">Just now</div>
       </div>
     </div>
-    
-    <div style="margin-top: 15px;">
-      <div id="suggestions" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
-        <!-- Quick suggestions will be loaded here -->
+
+    <!-- Input Area -->
+    <div
+      style="padding: 1.5rem; border-top: 1px solid var(--card-border); background: rgba(255,255,255,0.02); border-radius: 0 0 24px 24px;">
+      <div id="suggestions" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem;">
+        <!-- Suggestions will be here -->
       </div>
-      
-      <div style="display: flex; gap: 10px;">
-        <input type="text" id="chat-input" placeholder="Type your question here..." style="flex: 1; padding: 12px; border-radius: 12px; border: 1px solid var(--border); background: rgba(255,255,255,.05); color: var(--text);" />
-        <button id="send-btn" class="btn btn-primary">Send</button>
+      <div
+        style="display: flex; gap: 0.75rem; background: var(--bg); padding: 0.5rem; border-radius: 16px; border: 1px solid var(--card-border);">
+        <input type="text" id="chat-input" placeholder="Query about doctors, symptoms, or booking..."
+          style="flex: 1; background: transparent; border: none; outline: none; color: white; padding: 0.5rem 1rem; font-size: 0.95rem;">
+        <button id="send-btn" class="btn btn-primary" style="padding: 0.6rem 1.2rem;">
+          <span>Send</span>
+        </button>
       </div>
-      <p style="color: var(--muted); font-size: 0.85rem; margin-top: 8px;">
-        Note: This AI provides general guidance only. For medical emergencies, call emergency services.
-      </p>
     </div>
   </div>
-  
-  <div class="card" style="grid-column: span 4;">
-    <h3>🤖 AI Capabilities</h3>
-    <div style="margin-top: 15px;">
-      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding: 10px; border-radius: 10px; background: rgba(79,70,229,.1);">
-        <div style="width: 32px; height: 32px; background: linear-gradient(90deg, var(--primary), var(--primary2)); border-radius: 8px; display: flex; align-items: center; justify-content: center;">📅</div>
-        <div>
-          <strong>Appointment Booking</strong>
-          <p style="color: var(--muted); font-size: 0.9rem; margin: 2px 0 0 0;">Guide you through booking process</p>
-        </div>
-      </div>
-      
-      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding: 10px; border-radius: 10px; background: rgba(34,197,94,.1);">
-        <div style="width: 32px; height: 32px; background: #22c55e; border-radius: 8px; display: flex; align-items: center; justify-content: center;">👨‍⚕️</div>
-        <div>
-          <strong>Doctor Search</strong>
-          <p style="color: var(--muted); font-size: 0.9rem; margin: 2px 0 0 0;">Find specialists by category</p>
-        </div>
-      </div>
-      
-      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding: 10px; border-radius: 10px; background: rgba(234,179,8,.1);">
-        <div style="width: 32px; height: 32px; background: #eab308; border-radius: 8px; display: flex; align-items: center; justify-content: center;">ℹ️</div>
-        <div>
-          <strong>Basic Medical Info</strong>
-          <p style="color: var(--muted); font-size: 0.9rem; margin: 2px 0 0 0;">General health guidance</p>
-        </div>
-      </div>
-      
-      <div style="display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 10px; background: rgba(124,58,237,.1);">
-        <div style="width: 32px; height: 32px; background: var(--primary2); border-radius: 8px; display: flex; align-items: center; justify-content: center;">⚡</div>
-        <div>
-          <strong>Quick Support</strong>
-          <p style="color: var(--muted); font-size: 0.9rem; margin: 2px 0 0 0;">24/7 instant responses</p>
-        </div>
+
+  <div style="grid-column: span 4; display: flex; flex-direction: column; gap: 1.5rem;">
+    <div class="card" style="padding: 1.5rem; border-radius: 20px;">
+      <h3 style="font-size: 1.1rem; margin-bottom: 1rem;">🚀 Quick Actions</h3>
+      <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+        <a href="/doctors" class="btn"
+          style="justify-content: flex-start; background: rgba(99, 102, 241, 0.1); border-color: rgba(99, 102, 241, 0.2);">
+          <span>👨‍⚕️</span> Browse Doctors
+        </a>
+        <a href="/dashboard" class="btn" style="justify-content: flex-start;">
+          <span>📊</span> View Appointments
+        </a>
       </div>
     </div>
-    
-    <h4 style="margin-top: 20px; margin-bottom: 10px;">🚨 Important Notice</h4>
-    <div style="padding: 12px; border-radius: 10px; background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3);">
-      <p style="color: #ef4444; font-size: 0.9rem; margin: 0;">
-        <strong>Medical Emergency?</strong><br>
-        Call your local emergency number or go to the nearest hospital immediately.
-      </p>
+
+    <div class="card" style="padding: 1.5rem; border-radius: 20px; border-left: 4px solid var(--danger);">
+      <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--danger);">🚨 Emergency?</h3>
+      <p style="font-size: 0.85rem; margin-bottom: 1rem;">If you are experiencing a life-threatening emergency, please
+        do not wait for AI response.</p>
+      <div
+        style="padding: 1rem; background: rgba(239, 68, 68, 0.1); border-radius: 12px; text-align: center; font-weight: 800; font-size: 1.25rem; color: var(--danger);">
+        CALL 911
+      </div>
     </div>
   </div>
 </div>
 
 <style>
+  /* Custom Chat Overrides */
   .chat-message {
-    margin-bottom: 15px;
-    display: flex;
-    flex-direction: column;
+    max-width: 85%;
   }
-  
-  .chat-message.user {
-    align-items: flex-end;
-  }
-  
+
   .chat-message.ai {
-    align-items: flex-start;
+    align-self: flex-start;
   }
-  
+
+  .chat-message.user {
+    align-self: flex-end;
+  }
+
   .message-bubble {
-    padding: 12px 16px;
-    border-radius: 18px;
-    max-width: 80%;
-    word-wrap: break-word;
-    white-space: pre-line;
+    padding: 1rem 1.25rem;
+    border-radius: 20px;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    position: relative;
+    box-shadow: var(--shadow-sm);
   }
-  
+
+  .chat-message.ai .message-bubble {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-bottom-left-radius: 4px;
+    color: var(--text);
+  }
+
   .chat-message.user .message-bubble {
-    background: linear-gradient(90deg, var(--primary), var(--primary2));
+    background: linear-gradient(135deg, var(--primary), var(--primary2));
     color: white;
     border-bottom-right-radius: 4px;
   }
-  
-  .chat-message.ai .message-bubble {
-    background: rgba(255,255,255,.08);
-    border: 1px solid var(--border);
-    border-bottom-left-radius: 4px;
-  }
-  
+
   .message-time {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     color: var(--muted);
-    margin-top: 4px;
+    margin-top: 0.4rem;
+    padding: 0 0.5rem;
   }
-  
+
   .suggestion-chip {
-    padding: 8px 12px;
-    background: rgba(79,70,229,.15);
-    border: 1px solid rgba(79,70,229,.3);
-    border-radius: 20px;
-    font-size: 0.85rem;
+    padding: 0.5rem 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    font-size: 0.8rem;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.2s;
   }
-  
+
   .suggestion-chip:hover {
-    background: rgba(79,70,229,.25);
+    background: rgba(99, 102, 241, 0.1);
+    border-color: var(--primary);
     transform: translateY(-2px);
-  }
-  
-  #chat-container::-webkit-scrollbar {
-    width: 6px;
-  }
-  
-  #chat-container::-webkit-scrollbar-track {
-    background: rgba(255,255,255,.05);
-    border-radius: 3px;
-  }
-  
-  #chat-container::-webkit-scrollbar-thumb {
-    background: var(--primary);
-    border-radius: 3px;
   }
 </style>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
+  document.addEventListener('DOMContentLoaded', function () {
     const chatContainer = document.getElementById('chat-container');
     const chatInput = document.getElementById('chat-input');
     const sendBtn = document.getElementById('send-btn');
     const suggestionsContainer = document.getElementById('suggestions');
-    
+
     // Load quick suggestions
     fetch('/ai/chat/suggestions')
       .then(response => response.json())
@@ -173,31 +168,31 @@
           suggestionsContainer.appendChild(chip);
         });
       });
-    
+
     // Send message on button click
     sendBtn.addEventListener('click', sendMessage);
-    
+
     // Send message on Enter key
-    chatInput.addEventListener('keypress', function(e) {
+    chatInput.addEventListener('keypress', function (e) {
       if (e.key === 'Enter') {
         sendMessage();
       }
     });
-    
+
     function sendMessage() {
       const message = chatInput.value.trim();
       if (!message) return;
-      
+
       // Add user message to chat
       addMessage(message, 'user');
       chatInput.value = '';
-      
+
       // Scroll to bottom
       chatContainer.scrollTop = chatContainer.scrollHeight;
-      
+
       // Show loading indicator
       const loadingId = addMessage('Thinking...', 'ai', true);
-      
+
       // Send to server
       fetch('/ai/chat', {
         method: 'POST',
@@ -206,60 +201,60 @@
         },
         body: JSON.stringify({ message: message })
       })
-      .then(response => response.json())
-      .then(data => {
-        // Remove loading message
-        const loadingMsg = document.getElementById(loadingId);
-        if (loadingMsg) loadingMsg.remove();
-        
-        if (data.error) {
-          addMessage('Sorry, I encountered an error. Please try again.', 'ai');
-        } else {
-          addMessage(data.response, 'ai');
-        }
-      })
-      .catch(error => {
-        // Remove loading message
-        const loadingMsg = document.getElementById(loadingId);
-        if (loadingMsg) loadingMsg.remove();
-        
-        addMessage('Connection error. Please check your internet.', 'ai');
-      });
+        .then(response => response.json())
+        .then(data => {
+          // Remove loading message
+          const loadingMsg = document.getElementById(loadingId);
+          if (loadingMsg) loadingMsg.remove();
+
+          if (data.error) {
+            addMessage('Sorry, I encountered an error. Please try again.', 'ai');
+          } else {
+            addMessage(data.response, 'ai');
+          }
+        })
+        .catch(error => {
+          // Remove loading message
+          const loadingMsg = document.getElementById(loadingId);
+          if (loadingMsg) loadingMsg.remove();
+
+          addMessage('Connection error. Please check your internet.', 'ai');
+        });
     }
-    
+
     function addMessage(text, sender, isLoading = false) {
       const messageDiv = document.createElement('div');
       const messageId = 'msg-' + Date.now();
-      
+
       if (isLoading) {
         messageDiv.id = messageId;
       }
-      
+
       messageDiv.className = `chat-message ${sender}`;
-      
+
       const bubble = document.createElement('div');
       bubble.className = 'message-bubble';
-      
+
       if (sender === 'ai') {
-        bubble.innerHTML = `<strong>MediBook AI:</strong> ${text}`;
+        bubble.innerHTML = text;
       } else {
         bubble.textContent = text;
       }
-      
+
       const time = document.createElement('div');
       time.className = 'message-time';
-      time.textContent = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-      
+      time.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
       messageDiv.appendChild(bubble);
       messageDiv.appendChild(time);
       chatContainer.appendChild(messageDiv);
-      
+
       // Scroll to bottom
       chatContainer.scrollTop = chatContainer.scrollHeight;
-      
+
       return messageId;
     }
-    
+
     // Focus on input when page loads
     chatInput.focus();
   });

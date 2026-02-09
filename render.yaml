@@ -12,3 +12,9 @@ services:
         value: 3.11.0
       - key: SECRET_KEY
         generateValue: true
+      - key: GEMINI_API_KEY
+        value: "YOUR_GEMINI_KEY_HERE"
+      - key: MAIL_USERNAME
+        value: "YOUR_EMAIL@gmail.com"
+      - key: MAIL_PASSWORD
+        value: "YOUR_APP_PASSWORD"

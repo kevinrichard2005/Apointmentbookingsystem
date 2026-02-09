@@ -4,11 +4,35 @@ import os
 import random
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
+from flask_mail import Mail, Message
 
 app = Flask(__name__, static_folder="static", template_folder=".")
 
 app.secret_key = os.environ.get("SECRET_KEY", "super_secret_key_development_only")
 DB_NAME = "database.db"
+
+# ========== EMAIL CONFIGURATION ==========
+app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
+app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
+app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'True') == 'True'
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', 'MediBook Alerts <noreply@medibook.com>')
+
+mail = Mail(app)
+
+def send_email(subject, recipient, body_html):
+    """Helper to send email with fallback to console logging"""
+    if not app.config['MAIL_USERNAME'] or not app.config['MAIL_PASSWORD']:
+        print(f"📧 EMAIL LOG (Simulated):\nSubject: {subject}\nTo: {recipient}\nContent: {body_html}\n(Configure MAIL_USERNAME/PASSWORD to send real emails)")
+        return
+    try:
+        msg = Message(subject, recipients=[recipient])
+        msg.html = body_html
+        mail.send(msg)
+        print(f"✅ Email sent to {recipient}")
+    except Exception as e:
+        print(f"❌ Email error: {e}")
 
 # ========== FIX FOR STATIC FILES ==========
 import shutil
@@ -162,152 +186,258 @@ def init_db():
     conn.close()
 
 
-# -------------------- AI CHATBOT FUNCTIONS --------------------
+# -------------------- AI CHATBOT FUNCTIONS (YOUR ORIGINAL BUT ENHANCED) --------------------
 def ai_response(user_message, user_id=None):
-    """Generate AI response based on user message"""
+    """Generate AI response based on user message - ENHANCED KEYWORD VERSION"""
     message_lower = user_message.lower().strip()
     
-    # Medical knowledge base
-    MEDICAL_KB = {
-        "greetings": {
-            "patterns": ["hello", "hi", "hey", "good morning", "good afternoon", "good evening"],
-            "responses": [
+    # ========== EMERGENCY CHECK (PRIORITY) ==========
+    emergency_keywords = ["emergency", "urgent", "immediate help", "critical", 
+                         "heart attack", "stroke", "bleeding", "unconscious", 
+                         "chest pain", "can't breathe", "severe pain", "dying",
+                         "911", "ambulance", "hospital now"]
+    
+    for keyword in emergency_keywords:
+        if keyword in message_lower:
+            return "🚨 **EMERGENCY NOTICE** 🚨\n\nIf this is a medical emergency, please:\n\n1. **CALL YOUR LOCAL EMERGENCY NUMBER IMMEDIATELY**\n2. Go to the nearest emergency room\n3. Do NOT wait for online assistance\n\n**Emergency Numbers:**\n• USA/Canada: 911\n• UK: 999\n• Australia: 000\n• EU: 112\n\nThis chatbot is for appointment booking only and cannot handle emergencies."
+
+    # ========== GREETINGS ==========
+    greetings = ["hello", "hi", "hey", "good morning", "good afternoon", "good evening", "greetings"]
+    for greeting in greetings:
+        if greeting in message_lower:
+            responses = [
                 "Hello! I'm MediBook AI Assistant. How can I help you with your healthcare needs today?",
                 "Hi there! Welcome to MediBook. How can I assist you with appointments or medical queries?",
                 "Hello! I'm here to help you book appointments, find doctors, or answer medical questions."
             ]
-        },
-        "appointments": {
-            "patterns": ["book appointment", "schedule appointment", "make appointment", "see doctor", "want to book"],
-            "responses": [
-                "I can help you book an appointment! You can:\n1. Go to 'Doctors' page to browse available doctors\n2. Click 'Book Now' on any doctor's card\n3. Or tell me what specialty you're looking for and I'll guide you.",
-                "To book an appointment:\n1. Visit the Doctors section\n2. Choose your preferred doctor\n3. Select date and time\nDo you need help finding a specific type of doctor?"
-            ]
-        },
-        "doctors": {
-            "patterns": ["find doctor", "search doctor", "available doctors", "specialists", "which doctors"],
-            "responses": [
-                "We have doctors in various specialties:\n• Cardiologists\n• Dentists\n• Pediatricians\n• Orthopedic Surgeons\n• Gynecologists\n• Dermatologists\n• General Physicians\n\nVisit the 'Doctors' page to see all available doctors.",
-                "You can find all available doctors on the 'Doctors' page. We have specialists in cardiology, dentistry, pediatrics, orthopedics, gynecology, dermatology, and general medicine."
-            ]
-        },
-        "cancellation": {
-            "patterns": ["cancel appointment", "reschedule", "change appointment", "cancel booking"],
-            "responses": [
-                "To cancel or reschedule an appointment:\n1. Go to your Dashboard\n2. Find the appointment in the table\n3. Click 'Cancel' button (if status is Pending or Approved)\n\nNote: You can only cancel appointments that are Pending or Approved.",
-                "You can manage your appointments from the Dashboard. Click 'Cancel' next to any Pending or Approved appointment. For rescheduling, you'll need to book a new appointment."
-            ]
-        },
-        "emergency": {
-            "patterns": ["emergency", "urgent", "immediate help", "critical", "heart attack", "stroke"],
-            "responses": [
-                "🚨 **EMERGENCY NOTICE** 🚨\nIf this is a medical emergency, please:\n1. Call your local emergency number immediately\n2. Go to the nearest emergency room\n3. For non-emergency medical advice, contact your doctor\n\nThis chatbot is for appointment booking only.",
-                "⚠️ **URGENT MEDICAL ATTENTION NEEDED** ⚠️\nPlease call emergency services or visit the nearest hospital for immediate medical care. This platform is for scheduled appointments only."
-            ]
-        },
-        "medication": {
-            "patterns": ["medicine", "prescription", "drug", "pharmacy", "meds", "pill"],
-            "responses": [
-                "For medication or prescription queries:\n1. Consult with your doctor during your appointment\n2. Visit a licensed pharmacist\n3. Never self-medicate without professional advice\n\nI can help you book an appointment with a doctor who can assist with medication questions."
-            ]
-        },
-        "hours": {
-            "patterns": ["clinic hours", "working hours", "open", "availability", "timing", "when open"],
-            "responses": [
-                "Clinic hours vary by doctor. Generally:\n• Weekdays: 9 AM - 7 PM\n• Saturdays: 10 AM - 4 PM\n• Sundays: Emergency only\n\nCheck individual doctor profiles for specific availability.",
-                "Most doctors are available:\nMon-Fri: 9:00 AM to 7:00 PM\nSat: 10:00 AM to 4:00 PM\nSpecific hours are listed on each doctor's profile."
-            ]
-        },
-        "contact": {
-            "patterns": ["contact", "phone", "email", "support", "help", "customer service"],
-            "responses": [
-                "You can contact us:\n📧 Email: support@medibook.com\n📞 Phone: +1 (555) 123-4567\n📍 Address: 123 Medical Street, Health City\n⏰ Hours: Mon-Fri, 9AM-6PM\n\nOr visit the 'Contact Us' page for more details."
-            ]
-        },
-        "thanks": {
-            "patterns": ["thank you", "thanks", "appreciate", "helpful", "thank"],
-            "responses": [
+            return random.choice(responses)
+
+    # ========== THANKS ==========
+    thanks = ["thank you", "thanks", "appreciate", "helpful", "thank"]
+    for thank in thanks:
+        if thank in message_lower:
+            responses = [
                 "You're welcome! I'm glad I could help. Don't hesitate to ask if you need anything else.",
                 "Happy to help! Remember, I'm here 24/7 to assist with your healthcare needs.",
                 "My pleasure! Let me know if you have any other questions about appointments or healthcare."
             ]
-        },
-        "symptoms": {
-            "patterns": ["fever", "headache", "cough", "pain", "fatigue", "rash", "cold", "flu", "nausea"],
-            "responses": [
-                "I can provide general guidance, but please consult a doctor for proper medical advice. Would you like me to help you book an appointment with a relevant specialist?",
-                "For accurate diagnosis and treatment, it's best to consult a healthcare professional. I can assist you in booking an appointment with a suitable doctor."
-            ]
-        }
-    }
+            return random.choice(responses)
+
+    # ========== APPOINTMENT BOOKING ==========
+    appointment_keywords = ["book appointment", "schedule appointment", "make appointment", 
+                          "see doctor", "want to book", "need appointment", "book a visit",
+                          "make booking", "schedule visit", "book doctor"]
     
-    # Check for specific patterns
-    for category, data in MEDICAL_KB.items():
-        for pattern in data["patterns"]:
-            if pattern in message_lower:
-                return random.choice(data["responses"])
-    
-    # Check for doctor-specific queries
-    specialties = ["cardiologist", "dentist", "pediatrician", "orthopedic", "gynecologist", 
-                   "dermatologist", "psychiatrist", "ent", "ophthalmologist", "physician",
-                   "cardiology", "dental", "pediatrics", "orthopedics", "gynecology",
-                   "dermatology", "psychiatry", "eye", "general"]
-    
-    for specialty in specialties:
-        if specialty in message_lower:
+    for keyword in appointment_keywords:
+        if keyword in message_lower:
             conn = get_db()
-            doctors = conn.execute(
-                "SELECT name, specialization FROM doctors WHERE specialization LIKE ? OR specialization LIKE ? LIMIT 3",
-                (f"%{specialty}%", f"%{specialty[:-1]}%")
-            ).fetchall()
+            doctors_count = conn.execute("SELECT COUNT(*) as count FROM doctors").fetchone()["count"]
             conn.close()
             
-            if doctors:
-                response = f"We have {len(doctors)} specialist(s) available:\n"
-                for doc in doctors:
-                    response += f"• Dr. {doc['name']} ({doc['specialization']})\n"
-                response += "\nVisit the 'Doctors' page to book an appointment."
-                return response
-            else:
-                return f"We currently don't have {specialty} specialists available. Please check back later or contact support for more information."
+            responses = [
+                f"I can help you book an appointment! We have {doctors_count} verified doctors available.\n\n**Steps to book:**\n1. Go to 'Doctors' page to browse available doctors\n2. Click 'Book Now' on any doctor's card\n3. Select your preferred date and time\n4. Confirm booking\n\nYou'll receive instant confirmation!",
+                f"To book an appointment:\n1. Visit the 'Doctors' section\n2. Choose from {doctors_count} specialists\n3. Select date and time\n4. Get confirmation\n\nWhat type of specialist are you looking for? I can help you find the right doctor."
+            ]
+            return random.choice(responses)
+
+    # ========== DOCTOR SEARCH ==========
+    doctor_keywords = ["find doctor", "search doctor", "available doctors", "specialists", 
+                      "which doctors", "looking for doctor", "need doctor", "doctor available"]
     
-    # Check for appointment status query
-    if "my appointment" in message_lower or "appointment status" in message_lower or "my bookings" in message_lower:
-        if user_id:
+    for keyword in doctor_keywords:
+        if keyword in message_lower:
+            conn = get_db()
+            doctors = conn.execute("SELECT specialization, COUNT(*) as count FROM doctors GROUP BY specialization").fetchall()
+            conn.close()
+            
+            specialties = ", ".join([f"{doc['specialization']} ({doc['count']})" for doc in doctors])
+            
+            return f"**Available Specialists:**\n\n{specialties}\n\n**How to find a doctor:**\n1. Visit 'Doctors' page\n2. Browse by specialization\n3. Check availability and timings\n4. Click 'Book Now' to schedule\n\nWhich specialty are you interested in?"
+
+    # ========== CANCELLATION ==========
+    cancel_keywords = ["cancel appointment", "reschedule", "change appointment", "cancel booking",
+                      "postpone", "cancel my", "need to cancel", "want to cancel"]
+    
+    for keyword in cancel_keywords:
+        if keyword in message_lower:
+            if user_id:
+                conn = get_db()
+                pending_appointments = conn.execute("""
+                    SELECT COUNT(*) as count FROM appointments 
+                    WHERE user_id = ? AND status IN ('Pending', 'Approved')
+                """, (user_id,)).fetchone()["count"]
+                conn.close()
+                
+                if pending_appointments > 0:
+                    return f"**Cancellation Process:**\n\nYou have {pending_appointments} appointment(s) that can be cancelled.\n\n**Steps:**\n1. Go to your Dashboard\n2. Find the appointment in the table\n3. Click 'Cancel' button\n4. Confirm cancellation\n\n**Note:** You can only cancel appointments with 'Pending' or 'Approved' status."
+            
+            return "**To cancel or reschedule:**\n1. Go to your Dashboard\n2. Find the appointment\n3. Click 'Cancel' (if status is Pending/Approved)\n4. For rescheduling: Cancel first, then book new slot\n\nVisit your Dashboard to manage appointments."
+
+    # ========== APPOINTMENT STATUS ==========
+    status_keywords = ["my appointment", "appointment status", "my bookings", "check appointment",
+                      "status of", "when is my", "upcoming appointment"]
+    
+    for keyword in status_keywords:
+        if keyword in message_lower and user_id:
             conn = get_db()
             appointments = conn.execute("""
                 SELECT a.date, a.time, a.status, d.name 
                 FROM appointments a 
                 JOIN doctors d ON a.doctor_id = d.id 
                 WHERE a.user_id = ? 
-                ORDER BY a.date DESC LIMIT 3
+                ORDER BY a.date DESC LIMIT 5
             """, (user_id,)).fetchall()
             conn.close()
             
             if appointments:
-                response = "Your recent appointments:\n"
+                response = "**Your Recent Appointments:**\n\n"
                 for app in appointments:
-                    response += f"• {app['date']} at {app['time']} with Dr. {app['name']} - Status: {app['status']}\n"
-                response += "\nVisit your Dashboard for full details."
+                    status_icon = "🟡" if app['status'] == 'Pending' else "🟢" if app['status'] == 'Approved' else "🔵" if app['status'] == 'Completed' else "🔴"
+                    response += f"{status_icon} **{app['date']} at {app['time']}**\nDr. {app['name']} - Status: **{app['status']}**\n\n"
+                response += "Visit your **Dashboard** for full details and management options."
                 return response
             else:
-                return "You don't have any appointments yet. Would you like to book one? You can visit the 'Doctors' page to get started."
+                return "You don't have any appointments yet. Would you like to book one? Visit the **'Doctors'** page to get started!"
+
+    # ========== MEDICATION ==========
+    med_keywords = ["medicine", "prescription", "drug", "pharmacy", "meds", "pill", "tablet",
+                   "dosage", "side effects", "take medicine"]
     
-    # Check for pricing/cost questions
-    if "price" in message_lower or "cost" in message_lower or "fee" in message_lower or "charge" in message_lower:
-        return "Consultation fees vary by doctor and specialty. Please contact the specific doctor's clinic for pricing details. You can find contact information on each doctor's profile."
+    for keyword in med_keywords:
+        if keyword in message_lower:
+            return "**Medication Guidance:**\n\n⚠️ **Important:** I cannot prescribe medication or provide medical advice.\n\n**For medication queries:**\n1. Consult with your doctor during appointment\n2. Visit a licensed pharmacist\n3. Never self-medicate without professional advice\n\nI can help you book an appointment with a doctor who can assist with medication questions."
+
+    # ========== SYMPTOMS ==========
+    symptom_keywords = ["fever", "headache", "cough", "pain", "fatigue", "rash", "cold", "flu",
+                       "nausea", "vomiting", "diarrhea", "dizziness", "back pain", "stomach pain",
+                       "sore throat", "allergy", "itchy", "swelling", "bleeding", "bruise"]
     
-    # Check for location questions
-    if "location" in message_lower or "where" in message_lower or "address" in message_lower:
-        return "Our clinics are located at: 123 Medical Street, Health City. Specific clinic locations are provided when you book an appointment with a doctor."
+    for keyword in symptom_keywords:
+        if keyword in message_lower:
+            conn = get_db()
+            # Find relevant specialist based on symptom
+            specialist_map = {
+                "fever": "General Physician",
+                "headache": "General Physician or Neurologist",
+                "cough": "General Physician or Pulmonologist",
+                "pain": "General Physician",
+                "rash": "Dermatologist",
+                "cold": "General Physician",
+                "flu": "General Physician",
+                "nausea": "General Physician or Gastroenterologist",
+                "back pain": "Orthopedic Surgeon",
+                "stomach pain": "General Physician or Gastroenterologist",
+                "sore throat": "General Physician or ENT Specialist",
+                "allergy": "General Physician or Allergist"
+            }
+            
+            recommended_specialist = "General Physician"
+            for symptom, specialist in specialist_map.items():
+                if symptom in message_lower:
+                    recommended_specialist = specialist
+                    break
+            
+            doctors = conn.execute("""
+                SELECT name, specialization FROM doctors 
+                WHERE specialization LIKE ? 
+                LIMIT 3
+            """, (f"%{recommended_specialist.split()[0]}%",)).fetchall()
+            conn.close()
+            
+            response = "**Symptom Guidance:**\n\n"
+            response += "⚠️ **Disclaimer:** This is general information only, not medical advice.\n\n"
+            response += "**Recommendation:** Consult a healthcare professional for accurate diagnosis.\n\n"
+            
+            if doctors:
+                response += f"**Available {recommended_specialist}s:**\n"
+                for doc in doctors:
+                    response += f"• Dr. {doc['name']} ({doc['specialization']})\n"
+                response += "\nVisit **'Doctors'** page to book an appointment."
+            else:
+                response += f"Book an appointment with a **{recommended_specialist}** for proper evaluation."
+            
+            return response
+
+    # ========== CLINIC HOURS ==========
+    hour_keywords = ["clinic hours", "working hours", "open", "availability", "timing", 
+                    "when open", "close", "operating hours", "business hours"]
     
-    # Default responses
+    for keyword in hour_keywords:
+        if keyword in message_lower:
+            return "**Clinic Hours:**\n\n• **Weekdays (Mon-Fri):** 9:00 AM - 7:00 PM\n• **Saturdays:** 10:00 AM - 4:00 PM\n• **Sundays:** Emergency services only\n• **Holidays:** Check with specific clinic\n\n**Note:** Individual doctor hours may vary. Check doctor profiles for specific availability."
+
+    # ========== CONTACT INFO ==========
+    contact_keywords = ["contact", "phone", "email", "support", "help", "customer service",
+                       "reach", "get in touch", "address", "location", "where are you"]
+    
+    for keyword in contact_keywords:
+        if keyword in message_lower:
+            return "**Contact Information:**\n\n📧 **Email:** support@medibook.com\n📞 **Phone:** +1 (555) 123-4567\n📍 **Address:** 123 Medical Street, Health City\n⏰ **Support Hours:** Mon-Fri, 9AM-6PM\n\n**For Urgent Matters:**\n• Technical issues: tech@medibook.com\n• Billing: billing@medibook.com\n• Feedback: feedback@medibook.com"
+
+    # ========== PRICING ==========
+    price_keywords = ["price", "cost", "fee", "charge", "how much", "payment", "bill", 
+                     "insurance", "covered", "afford"]
+    
+    for keyword in price_keywords:
+        if keyword in message_lower:
+            return "**Pricing Information:**\n\n💰 **Consultation Fees:**\n• Vary by doctor and specialization\n• Typically range: $100 - $300\n• Exact fees shown when booking\n\n**Insurance:**\n• Most major insurances accepted\n• Check with specific doctor's clinic\n• Bring insurance card to appointment\n\n**Payment Methods:**\n• Credit/Debit Cards\n• Health Savings Accounts (HSA)\n• Cash (at clinic)\n• Insurance co-pays"
+
+    # ========== LOCATION ==========
+    location_keywords = ["location", "where", "address", "directions", "map", "how to reach",
+                        "clinic location", "hospital location", "find clinic"]
+    
+    for keyword in location_keywords:
+        if keyword in message_lower:
+            return "**Location & Directions:**\n\n📍 **Main Clinic:**\n123 Medical Street\nHealth City, HC 10001\n\n**Branch Clinics:**\n1. Downtown Health Center: 456 Business Ave\n2. Northside Medical: 789 Park Road\n3. Westend Clinic: 321 Oak Street\n\n**Parking:** Available at all locations\n**Public Transport:** Bus routes 101, 205, 308\n**Accessibility:** Wheelchair accessible"
+
+    # ========== DOCTOR-SPECIFIC QUERIES ==========
+    specialties = ["cardiologist", "dentist", "pediatrician", "orthopedic", "gynecologist", 
+                   "dermatologist", "psychiatrist", "ent", "ophthalmologist", "physician",
+                   "cardiology", "dental", "pediatrics", "orthopedics", "gynecology",
+                   "dermatology", "psychiatry", "eye", "general", "neurologist", 
+                   "gastroenterologist", "pulmonologist", "urologist", "allergist"]
+    
+    for specialty in specialties:
+        if specialty in message_lower:
+            conn = get_db()
+            doctors = conn.execute("""
+                SELECT name, specialization, available_days, time_slots 
+                FROM doctors WHERE specialization LIKE ? OR specialization LIKE ? 
+                LIMIT 3
+            """, (f"%{specialty}%", f"%{specialty[:-1]}%")).fetchall()
+            conn.close()
+            
+            if doctors:
+                response = f"**{specialty.title()} Specialists Available:**\n\n"
+                for doc in doctors:
+                    response += f"👨‍⚕️ **Dr. {doc['name']}**\n"
+                    response += f"• Specialty: {doc['specialization']}\n"
+                    response += f"• Available: {doc['available_days']}\n"
+                    response += f"• Timings: {doc['time_slots']}\n\n"
+                response += "Visit **'Doctors'** page to book appointment with any of these specialists."
+                return response
+            else:
+                return f"**Specialist Search:**\n\nWe currently don't have {specialty} specialists available.\n\n**Suggestions:**\n1. Check back later for new doctors\n2. Contact support for referrals\n3. Try searching for similar specialties\n\n**Alternative:** Visit 'Doctors' page to see all available specialists."
+
+    # ========== GENERAL HELP ==========
+    help_keywords = ["help", "what can you do", "how can you help", "capabilities", 
+                    "features", "assist", "guide", "what help", "need help"]
+    
+    for keyword in help_keywords:
+        if keyword in message_lower:
+            return "**How I Can Help You:**\n\n🔍 **Find Doctors:** Search by specialty\n📅 **Book Appointments:** Easy scheduling\n🗓️ **Manage Bookings:** View, cancel, reschedule\nℹ️ **Clinic Info:** Hours, contact, location\n💊 **Medication Guidance:** General information\n🤒 **Symptom Check:** Basic health guidance\n📞 **Support:** Contact information\n\n**Ask me anything about:**\n• Booking appointments\n• Finding doctors\n• Clinic information\n• Basic health questions"
+
+    # ========== DEFAULT RESPONSES ==========
     default_responses = [
-        "I'm here to help with medical appointments and basic healthcare information. Could you be more specific about what you need?",
-        "I can help you with:\n• Booking appointments\n• Finding doctors\n• Appointment status\n• Basic medical guidance\n• Clinic information\n\nWhat would you like to know?",
-        "I'm your MediBook assistant! I can help with appointment booking, doctor information, and basic healthcare queries. How can I assist you?",
-        "I understand you're looking for information. Could you tell me more about what you need help with? I can assist with booking, doctor search, or general questions.",
-        "Let me help you! I can guide you through booking appointments, finding the right doctor, or answering questions about our services. What would you like to know?"
+        "I'm here to help with medical appointments and healthcare information. Could you be more specific about what you need help with?",
+        
+        "I can help you with:\n• Booking appointments with doctors\n• Finding specialists by category\n• Checking appointment status\n• Basic medical guidance\n• Clinic hours and contact info\n\nWhat would you like to know?",
+        
+        "I'm your MediBook assistant! I specialize in helping with appointment booking, doctor information, and basic healthcare queries. How can I assist you today?",
+        
+        "Let me help you! I can guide you through booking appointments, finding the right doctor, or answering questions about our services. What would you like to know?",
+        
+        "I understand you're looking for information. Could you tell me more about what you need help with? I can assist with:\n• Appointment booking\n• Doctor search\n• Clinic information\n• General health questions"
     ]
     
     return random.choice(default_responses)
@@ -325,29 +455,28 @@ def log_chat(user_id, user_message, ai_response):
     except Exception as e:
         print(f"Error logging chat: {e}")
 
-# -------------------- MAIN ROUTES --------------------
 @app.route("/")
 def index():
     conn = get_db()
-    doctors_count = conn.execute("SELECT COUNT(*) as count FROM doctors").fetchone()["count"]
-    appointments_count = conn.execute("SELECT COUNT(*) as count FROM appointments").fetchone()["count"]
-    users_count = conn.execute("SELECT COUNT(*) as count FROM users WHERE role='user'").fetchone()["count"]
     
-    # Get today's booked slots for doctors
+    # Get stats for dashboard
+    users_count = conn.execute("SELECT COUNT(*) as total FROM users WHERE role='user'").fetchone()["total"]
+    doctors_count = conn.execute("SELECT COUNT(*) as total FROM doctors").fetchone()["total"]
+    appointments_count = conn.execute("SELECT COUNT(*) as total FROM appointments WHERE status!='Cancelled'").fetchone()["total"]
+    
+    # Get some doctors for display
+    doctors = conn.execute("SELECT * FROM doctors ORDER BY id DESC LIMIT 3").fetchall()
+    
+    # Get today's booked slots count
     today = datetime.now().strftime("%Y-%m-%d")
-    booked_slots = conn.execute("""
-        SELECT doctor_id, COUNT(*) as booked_count 
-        FROM appointments 
-        WHERE date = ? AND status != 'Cancelled'
-        GROUP BY doctor_id
-    """, (today,)).fetchall()
+    booked_slots = conn.execute("SELECT COUNT(*) as count FROM appointments WHERE date = ? AND status != 'Cancelled'", (today,)).fetchone()["count"]
     
     conn.close()
     
     stats = {
+        "users": users_count,
         "doctors": doctors_count,
-        "appointments": appointments_count,
-        "specializations": 15
+        "appointments": appointments_count
     }
     
     return render_template("index.html", 
@@ -369,6 +498,14 @@ def register():
                          (name, email, password))
             conn.commit()
             conn.close()
+            
+            # Send Welcome Email
+            send_email(
+                "Welcome to MediBook! 🩺",
+                email,
+                f"<h2>Hello {name}!</h2><p>Thank you for joining MediBook. Your account is now active.</p><p>You can now book appointments with our world-class specialists.</p><br><a href='#' style='padding:10px 20px; background:#4f46e5; color:white; text-decoration:none; border-radius:10px;'>Go to Dashboard</a>"
+            )
+            
             flash("✅ Registration successful! Please login.", "success")
             return redirect("/login")
         except:
@@ -514,6 +651,14 @@ def book_appointment(doctor_id):
                 VALUES(?,?,?,?,?)
             """, (session["user_id"], doctor_id, date, time, "Pending"))
             conn.commit()
+            
+            # Send Booking Confirmation Email
+            user_email = conn.execute("SELECT email FROM users WHERE id=?", (session["user_id"],)).fetchone()["email"]
+            send_email(
+                "Appointment Requested! 📅",
+                user_email,
+                f"<h3>Booking Request Received</h3><p>Your appointment request for <b>Dr. {doctor['name']}</b> on <b>{date}</b> at <b>{time}</b> is currently <b>PENDING</b>.</p><p>We will notify you once the doctor approves it!</p>"
+            )
             
             flash("✅ Appointment booked successfully!", "success")
             
@@ -689,7 +834,12 @@ def get_suggestions():
         "What doctors are available?",
         "How to reschedule appointment?",
         "Book with a dentist",
-        "Emergency contact"
+        "Emergency contact",
+        "Medicine for headache",
+        "Fever and cough symptoms",
+        "Clinic location",
+        "Appointment fees",
+        "Available time slots"
     ]
     
     return jsonify({'suggestions': suggestions})
@@ -762,11 +912,27 @@ def update_status(appointment_id):
     status = request.form["status"]
 
     conn = get_db()
+    # Get user email and appointment info before update
+    appointment_data = conn.execute("""
+        SELECT users.email, users.name as user_name, doctors.name as doctor_name, appointments.date, appointments.time 
+        FROM appointments 
+        JOIN users ON users.id = appointments.user_id 
+        JOIN doctors ON doctors.id = appointments.doctor_id 
+        WHERE appointments.id = ?
+    """, (appointment_id,)).fetchone()
+    
     conn.execute("UPDATE appointments SET status=? WHERE id=?", (status, appointment_id))
     conn.commit()
     conn.close()
 
-    flash("✅ Status updated!", "success")
+    if appointment_data:
+        send_email(
+            f"Appointment Status: {status} 🏥",
+            appointment_data['email'],
+            f"<h3>Status Update</h3><p>Hello {appointment_data['user_name']},</p><p>Your appointment with <b>Dr. {appointment_data['doctor_name']}</b> on <b>{appointment_data['date']}</b> has been updated to: <b>{status}</b>.</p><p>Check your dashboard for more details.</p>"
+        )
+
+    flash("✅ Status updated & Notification sent!", "success")
     return redirect("/admin")
 
 

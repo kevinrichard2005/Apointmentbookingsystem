@@ -28,9 +28,10 @@
       <a class="btn" href="/doctors" style="margin-left: 10px;">Back to Doctors</a>
     </div>
   </form>
-  
+
   {% if user_upcoming and user_upcoming|length > 0 %}
-  <div style="margin-top: 20px; padding: 15px; border-radius: 12px; background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.3);">
+  <div
+    style="margin-top: 20px; padding: 15px; border-radius: 12px; background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.3);">
     <h4 style="color: #eab308; margin-bottom: 10px;">⚠️ Your Upcoming Appointments</h4>
     {% for app in user_upcoming %}
     <p style="margin: 5px 0; color: var(--muted); font-size: 0.9rem;">
@@ -42,9 +43,10 @@
     </p>
   </div>
   {% endif %}
-  
+
   {% if booked_slots and booked_slots|length > 0 %}
-  <div style="margin-top: 15px; padding: 15px; border-radius: 12px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3);">
+  <div
+    style="margin-top: 15px; padding: 15px; border-radius: 12px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3);">
     <h4 style="color: #ef4444; margin-bottom: 10px;">⛔ Already Booked Slots for This Doctor</h4>
     {% for slot in booked_slots %}
     <p style="margin: 5px 0; color: var(--muted); font-size: 0.9rem;">
