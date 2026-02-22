@@ -6,58 +6,262 @@
   <p>Doctor: <b>{{ doctor.name }}</b> ({{ doctor.specialization }})</p>
 </div>
 
-<div class="form-wrap">
-  <h2>Choose Date & Time</h2>
+<div class="form-wrap" style="max-width: 800px; margin: 0 auto;">
+  <div class="grid">
+    <!-- Left Column: Date & Time Selection -->
+    <div class="col-7">
+      <h2>Choose Date & Time</h2>
+      <form method="POST" id="bookingForm">
+        <div class="input">
+          <label>Step 1: Select Date</label>
+          <input type="date" id="appointmentDate" name="date" required min="{{ today }}" />
+        </div>
 
-  <form method="POST">
-    <div class="input">
-      <label>Date</label>
-      <input type="date" name="date" required min="{{ today }}" />
+        <div class="input" style="margin-top: 24px;">
+          <label>Step 2: Select Session</label>
+          <select id="periodSelector">
+            <option value="morning">☀️ Morning Session (Before 12 PM)</option>
+            <option value="evening">🌙 Evening Session (After 12 PM)</option>
+          </select>
+        </div>
+
+        <div class="input" style="margin-top: 24px;">
+          <label style="display: flex; justify-content: space-between; align-items: center;">
+            Step 3: Select Specific Time
+            <span id="slotCount" style="font-size: 0.75rem; font-weight: 500; color: var(--muted);"></span>
+          </label>
+
+          <div id="slotContainer"
+            style="margin-top: 15px; border: 1px solid var(--border); border-radius: 16px; background: rgba(0,0,0,0.1); padding: 15px;">
+            <!-- Specific Time Dropdown -->
+            <select id="timeSlotDropdown" name="time" required disabled>
+              <option value="">Choose a time...</option>
+            </select>
+
+            <p id="timeSlotMessage" style="color: var(--muted); font-size: 0.85rem; margin-top: 10px; display: none;">
+            </p>
+          </div>
+
+          <small id="timeError" style="color: var(--danger); display: none; margin-top: 8px;">
+            Please select a time slot.
+          </small>
+        </div>
+
+        <div style="margin-top: 30px;">
+          <button class="btn btn-primary" type="submit" id="submitBtn" disabled>Confirm Booking</button>
+          <a class="btn" href="/doctors" style="margin-left: 10px;">Back to Doctors</a>
+        </div>
+      </form>
     </div>
 
-    <div class="input">
-      <label>Time</label>
-      <input type="text" name="time" required placeholder="Example: 10:00 AM" />
-      <small style="color: var(--muted); display: block; margin-top: 5px;">
-        Format: HH:MM AM/PM (e.g., 9:00 AM, 2:30 PM)
-      </small>
-    </div>
+    <!-- Right Column: Status & Info -->
+    <div class="col-5">
+      <div class="card" style="height: 100%; background: rgba(255,255,255,0.02);">
+        <h3>Booking Status</h3>
 
-    <div style="margin-top: 14px;">
-      <button class="btn btn-primary" type="submit">Confirm Booking</button>
-      <a class="btn" href="/doctors" style="margin-left: 10px;">Back to Doctors</a>
-    </div>
-  </form>
+        <div id="statusInfo" style="margin-top: 15px;">
+          <div
+            style="padding: 12px; border-radius: 12px; border: 1px solid var(--border); background: rgba(255,255,255,0.05);">
+            <p style="font-size: 0.9rem; color: var(--muted);">Doctor Availability:</p>
+            <p style="font-weight: 600;">{{ doctor.time_slots }}</p>
+          </div>
+        </div>
 
-  {% if user_upcoming and user_upcoming|length > 0 %}
-  <div
-    style="margin-top: 20px; padding: 15px; border-radius: 12px; background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.3);">
-    <h4 style="color: #eab308; margin-bottom: 10px;">⚠️ Your Upcoming Appointments</h4>
-    {% for app in user_upcoming %}
-    <p style="margin: 5px 0; color: var(--muted); font-size: 0.9rem;">
-      {{ app.date }} at {{ app.time }} with Dr. {{ app.doctor_name }}
-    </p>
-    {% endfor %}
-    <p style="margin-top: 10px; color: #eab308; font-size: 0.9rem; font-weight: 500;">
-      <i>You cannot book multiple appointments at the same time.</i>
-    </p>
+        <!-- Legend -->
+        <div style="margin-top: 20px; font-size: 0.8rem;">
+          <p style="margin-bottom: 8px; color: var(--muted);"><b>Legend:</b></p>
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
+            <div
+              style="width: 12px; height: 12px; border-radius: 3px; background: rgba(34, 197, 94, 0.2); border: 1px solid #22c55e;">
+            </div> Available
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
+            <div
+              style="width: 12px; height: 12px; border-radius: 3px; background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444;">
+            </div> Already Booked
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div
+              style="width: 12px; height: 12px; border-radius: 3px; background: rgba(234, 179, 8, 0.2); border: 1px solid #eab308;">
+            </div> Your Other Appointment
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
-  {% endif %}
-
-  {% if booked_slots and booked_slots|length > 0 %}
-  <div
-    style="margin-top: 15px; padding: 15px; border-radius: 12px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3);">
-    <h4 style="color: #ef4444; margin-bottom: 10px;">⛔ Already Booked Slots for This Doctor</h4>
-    {% for slot in booked_slots %}
-    <p style="margin: 5px 0; color: var(--muted); font-size: 0.9rem;">
-      {{ slot.date }} at {{ slot.time }}
-    </p>
-    {% endfor %}
-    <p style="margin-top: 10px; color: #ef4444; font-size: 0.9rem; font-weight: 500;">
-      <i>These slots are already booked by other patients.</i>
-    </p>
-  </div>
-  {% endif %}
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const dateInput = document.getElementById('appointmentDate');
+
+    const timeSlotDropdown = document.getElementById('timeSlotDropdown');
+    const timeSlotMessage = document.getElementById('timeSlotMessage');
+    const submitBtn = document.getElementById('submitBtn');
+    const form = document.getElementById('bookingForm');
+
+    // Data from Server
+    const availableDaysStr = "{{ doctor.available_days }}";
+    const timeRangesStr = "{{ doctor.time_slots }}";
+    const bookedSlots = JSON.parse('{{ booked_slots | tojson | safe }}');
+    const userUpcoming = JSON.parse('{{ user_upcoming | tojson | safe }}');
+
+    // Helper: Map days string to numbers (0-6)
+    function getAvailableDayNums(str) {
+      const map = { 'sun': 0, 'mon': 1, 'tue': 2, 'wed': 3, 'thu': 4, 'fri': 5, 'sat': 6 };
+      if (str.toLowerCase() === 'mon-sat') return [1, 2, 3, 4, 5, 6];
+      if (str.toLowerCase() === 'mon-sun' || str.toLowerCase() === 'daily') return [0, 1, 2, 3, 4, 5, 6];
+
+      return str.toLowerCase().split(',').map(s => {
+        const key = s.trim().substring(0, 3);
+        return map[key];
+      }).filter(n => n !== undefined);
+    }
+
+    const availableDayNums = getAvailableDayNums(availableDaysStr);
+
+    // Helper: Generate time slots from range
+    function generateSlots(rangeStr) {
+      const slots = [];
+      const ranges = rangeStr.split(',');
+
+      ranges.forEach(range => {
+        const parts = range.split('-').map(p => p.trim());
+        if (parts.length === 2) {
+          let current = moment(parts[0], "h:mm A");
+          const end = moment(parts[1], "h:mm A");
+
+          while (current.isBefore(end)) {
+            slots.push(current.format("hh:mm A"));
+            current.add(30, 'minutes'); // 30 min intervals
+          }
+        }
+      });
+      return slots;
+    }
+
+    // Load Moment.js if not present (simplified fallback if needed, but assuming or adding it)
+    // For now, let's use a simpler manual parser since we don't know if moment is available
+    function parseTime(timeStr) {
+      const [time, modifier] = timeStr.split(' ');
+      let [hours, minutes] = time.split(':');
+      if (hours === '12') hours = '00';
+      if (modifier === 'PM') hours = parseInt(hours, 10) + 12;
+      return parseInt(hours, 10) * 60 + parseInt(minutes, 10);
+    }
+
+    function formatTime(minutes) {
+      let h = Math.floor(minutes / 60);
+      let m = minutes % 60;
+      const mod = h >= 12 ? 'PM' : 'AM';
+      if (h > 12) h -= 12;
+      if (h === 0) h = 12;
+      return `${h}:${m === 0 ? '00' : m} ${mod}`;
+    }
+
+    function getGeneratedSlots(rangeStr) {
+      const slots = [];
+      rangeStr.split(',').forEach(range => {
+        const parts = range.split('-').map(p => p.trim());
+        if (parts.length === 2) {
+          let current = parseTime(parts[0]);
+          const end = parseTime(parts[1]);
+          while (current < end) {
+            slots.push(formatTime(current));
+            current += 30;
+          }
+        }
+      });
+      return slots;
+    }
+
+    const allPossibleSlots = getGeneratedSlots(timeRangesStr);
+    const periodSelector = document.getElementById('periodSelector');
+    let currentPeriod = 'morning';
+
+    // Dropdown Logic
+    periodSelector.addEventListener('change', function () {
+      currentPeriod = this.value;
+      if (dateInput.value) renderSlots(allPossibleSlots);
+    });
+
+    timeSlotDropdown.addEventListener('change', function () {
+      submitBtn.disabled = !this.value;
+    });
+
+    // Restrict Calendar to Available Days
+    dateInput.addEventListener('input', function () {
+      const date = new Date(this.value);
+      const day = date.getDay();
+
+      if (!availableDayNums.includes(day)) {
+        alert(`The doctor is not available on this day (${date.toLocaleDateString('en-US', { weekday: 'long' })}).\nAvailable days: ${availableDaysStr}`);
+        this.value = '';
+        renderSlots([]);
+      } else {
+        renderSlots(allPossibleSlots);
+      }
+    });
+
+    function getPeriod(timeStr) {
+      const hour = parseTime(timeStr) / 60;
+      return hour < 12 ? 'morning' : 'evening';
+    }
+
+    function renderSlots(slots) {
+      // Clear existing options
+      timeSlotDropdown.innerHTML = '<option value="">Choose a time...</option>';
+      timeSlotDropdown.disabled = true;
+      submitBtn.disabled = true;
+      timeSlotMessage.style.display = 'none';
+
+      if (slots.length === 0) return;
+
+      const selectedDate = dateInput.value;
+      const filteredSlots = slots.filter(slot => getPeriod(slot) === currentPeriod);
+
+      const countSpan = document.getElementById('slotCount');
+      countSpan.textContent = filteredSlots.length > 0 ? `${filteredSlots.length} available` : 'No slots';
+
+      if (filteredSlots.length === 0) {
+        timeSlotMessage.textContent = `No ${currentPeriod} slots available for this date.`;
+        timeSlotMessage.style.display = 'block';
+        return;
+      }
+
+      timeSlotDropdown.disabled = false;
+
+      filteredSlots.forEach(slot => {
+        const option = document.createElement('option');
+        option.value = slot;
+        option.textContent = slot;
+
+        // Check if already booked
+        const isBooked = bookedSlots.some(b => b.date === selectedDate && b.time === slot);
+        if (isBooked) {
+          option.disabled = true;
+          option.textContent += ' (Already Booked)';
+        }
+
+        // Check if user has conflict
+        const hasConflict = userUpcoming.some(u => u.date === selectedDate && u.time === slot);
+        if (hasConflict) {
+          option.disabled = true;
+          option.textContent += ' (Your Conflict)';
+        }
+
+        timeSlotDropdown.appendChild(option);
+      });
+    }
+
+    // Form Validation early
+    form.addEventListener('submit', function (e) {
+      if (!timeSlotDropdown.value) {
+        e.preventDefault();
+        document.getElementById('timeError').style.display = 'block';
+      }
+    });
+  });
+</script>
 
 {% endblock %}

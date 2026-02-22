@@ -7,30 +7,30 @@
 </div>
 
 <div class="grid" style="margin-top: 20px;">
-  <div class="card" style="grid-column: span 6;">
+  <div class="card col-6">
     <h3>📞 Contact Information</h3>
     <div style="margin-top: 15px;">
-      <p><strong>Email:</strong> support@medibook.com</p>
+      <p class="break-word"><strong>Email:</strong> support@medibook.com</p>
       <p><strong>Phone:</strong> +1 (555) 123-4567</p>
       <p><strong>Address:</strong> 123 Medical Street, Health City</p>
       <p><strong>Hours:</strong> Mon-Fri, 9AM-6PM</p>
     </div>
   </div>
 
-  <div class="card" style="grid-column: span 6;">
+  <div class="card col-6">
     <h3>📝 Send Message</h3>
-    <form style="margin-top: 15px;">
+    <form action="#" method="POST" style="margin-top: 15px;">
       <div class="input">
         <label>Your Name</label>
-        <input type="text" placeholder="Enter your name">
+        <input type="text" name="name" required placeholder="Enter your name">
       </div>
       <div class="input">
         <label>Your Email</label>
-        <input type="email" placeholder="Enter your email">
+        <input type="email" name="email" required placeholder="Enter your email">
       </div>
       <div class="input">
         <label>Message</label>
-        <textarea
+        <textarea name="message" required
           style="width:100%; height:100px; padding:12px; border-radius:12px; border:1px solid var(--border); background:rgba(255,255,255,.05); color:var(--text);"
           placeholder="Your message here..."></textarea>
       </div>
