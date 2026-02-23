@@ -1,99 +1,168 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="hero" style="padding: 3rem 2rem; text-align: left;">
-  <div
-    style="max-width: 800px; display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 1.5rem;">
-    <div>
-      <h1>Admin Control <span
-          style="background: linear-gradient(135deg, var(--primary), var(--secondary)); -webkit-background-clip: text; background-clip: text; color: transparent;">Center</span>
-      </h1>
-      <p>System overview and appointment management.</p>
+<div class="container" style="padding-top: 2rem;">
+  <div class="hero" style="padding: 3rem 2rem; text-align: left; margin-bottom: 2rem;">
+    <div
+      style="max-width: 800px; display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 1.5rem;">
+      <div>
+        <h1>Admin Control <span
+            style="background: linear-gradient(135deg, var(--primary), var(--secondary)); -webkit-background-clip: text; background-clip: text; color: transparent;">Center</span>
+        </h1>
+        <p>System overview and appointment management.</p>
+      </div>
+      <div style="display: flex; gap: 10px;">
+        <a class="btn btn-primary" href="/admin/add-doctor" style="padding: 1rem 1.5rem; font-size: 1rem;">+ Add New
+          Physician</a>
+        <a class="btn admin-export-btn" href="/admin/export-appointments"
+          style="padding: 1rem 1.5rem; font-size: 1rem; border: 1px solid var(--primary); color: var(--text);">📥 Export
+          Monthly Report</a>
+      </div>
     </div>
-    <a class="btn btn-primary" href="/admin/add-doctor" style="padding: 1rem 1.5rem; font-size: 1rem;">+ Add New
-      Physician</a>
   </div>
-</div>
 
-<div class="stats-row">
-  <div class="stat-item">
-    <div class="label">Total Healthcare Users</div>
-    <div class="value">{{ users_count }}</div>
-    <div class="trend up"><span>↑</span> Registered patients</div>
+  <div class="stats-row">
+    <div class="stat-item">
+      <div class="label">Today's Load</div>
+      <div class="value">{{ today_appts }}</div>
+      <div class="trend up"><span>📊</span> Total for today</div>
+    </div>
+    <div class="stat-item">
+      <div class="label">Action Required</div>
+      <div class="value" style="color: var(--warning);">{{ pending_appts }}</div>
+      <div class="trend" style="color: #eab308;"><span>⏳</span> Pending approval</div>
+    </div>
+    <div class="stat-item">
+      <div class="label">Staff Reach</div>
+      <div class="value">{{ doctors_count }}</div>
+      <div class="trend" style="color: var(--primary2);"><span>🩺</span> Active Doctors</div>
+    </div>
+    <div class="stat-item">
+      <div class="label">Completed</div>
+      <div class="value" style="color: var(--success);">{{ completed_appts }}</div>
+      <div class="trend up"><span>✅</span> Life-cycle done</div>
+    </div>
   </div>
-  <div class="stat-item">
-    <div class="label">Verified Doctors</div>
-    <div class="value">{{ doctors_count }}</div>
-    <div class="trend" style="color: var(--secondary);"><span>🩺</span> Professional staff</div>
-  </div>
-  <div class="stat-item">
-    <div class="label">Total Appointments</div>
-    <div class="value">{{ appointments_count }}</div>
-    <div class="trend up"><span>📊</span> Processed bookings</div>
-  </div>
-</div>
 
-<div class="table-container">
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Patient Name</th>
-        <th>Physician</th>
-        <th>Schedule</th>
-        <th>Status</th>
-        <th>Quick Management</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for a in appointments %}
-      <tr>
-        <td>
-          <div style="font-weight: 600;">{{ a.user_name }}</div>
-          <div style="font-size: 0.75rem; color: var(--muted);">ID: #{{ a.user_id }}</div>
-        </td>
-        <td>
-          <div style="display: flex; align-items: center; gap: 0.75rem;">
-            <div
-              style="width: 28px; height: 28px; border-radius: 6px; background: rgba(99, 102, 241, 0.1); color: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.7rem;">
-              {{ a.doctor_name[4] if a.doctor_name.startswith('Dr. ') else a.doctor_name[0] }}
-            </div>
-            <span>{{ a.doctor_name }}</span>
-          </div>
-        </td>
-        <td>
-          <div style="font-weight: 500;">{{ a.date }}</div>
-          <div style="font-size: 0.8rem; color: var(--muted);">{{ a.time }}</div>
-        </td>
-        <td>
-          <span class="badge 
-            {% if a.status == 'Approved' or a.status == 'Completed' %}success{% endif %}
-            {% if a.status == 'Cancelled' %}danger{% endif %}
-            {% if a.status == 'Pending' %}warn{% endif %}
-          ">
-            {{ a.status }}
-          </span>
-        </td>
-        <td>
-          <form method="POST" action="/admin/update-status/{{ a.id }}" style="display:flex; gap:8px;">
-            <select name="status" class="btn" style="padding: 6px 10px; font-size: 0.8rem; background: var(--bg);">
-              <option value="Pending" {% if a.status=='Pending' %}selected{% endif %}>Pending</option>
-              <option value="Approved" {% if a.status=='Approved' %}selected{% endif %}>Approved</option>
-              <option value="Completed" {% if a.status=='Completed' %}selected{% endif %}>Completed</option>
-              <option value="Cancelled" {% if a.status=='Cancelled' %}selected{% endif %}>Cancelled</option>
-            </select>
-            <button class="btn btn-primary" type="submit" style="padding: 6px 12px; font-size: 0.8rem;">Update</button>
-          </form>
-        </td>
-      </tr>
-      {% else %}
-      <tr>
-        <td colspan="5" style="text-align: center; padding: 4rem; color: var(--muted);">
-          No appointments recorded in the system.
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="grid" style="margin-top: 3rem;">
+    <div class="col-12">
+      <h3 style="margin-bottom: 1.5rem; font-weight: 800; font-size: 1.2rem;">Appointment Management</h3>
+      <div class="table-container">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Patient Name</th>
+              <th>Physician</th>
+              <th>Schedule</th>
+              <th>Status</th>
+              <th>Quick Management</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for a in appointments %}
+            <tr>
+              <td>
+                <div style="font-weight: 600;">{{ a.user_name }}</div>
+                <div style="font-size: 0.75rem; color: var(--muted);">ID: #{{ a.user_id }}</div>
+              </td>
+              <td>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <div
+                    style="width: 28px; height: 28px; border-radius: 6px; background: rgba(99, 102, 241, 0.1); color: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.7rem;">
+                    {{ a.doctor_name[4] if a.doctor_name.startswith('Dr. ') else a.doctor_name[0] }}
+                  </div>
+                  <span>{{ a.doctor_name }}</span>
+                </div>
+              </td>
+              <td>
+                <div style="font-weight: 500;">{{ a.date }}</div>
+                <div style="font-size: 0.8rem; color: var(--muted);">{{ a.time }}</div>
+              </td>
+              <td>
+                <span class="badge 
+                  {% if a.status == 'Approved' or a.status == 'Completed' %}success{% endif %}
+                  {% if a.status == 'Cancelled' %}danger{% endif %}
+                  {% if a.status == 'Pending' %}warn{% endif %}
+                ">
+                  {{ a.status }}
+                </span>
+              </td>
+              <td>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  <form method="POST" action="/admin/update-status/{{ a.id }}" style="display:flex; gap:8px;">
+                    <select name="status" class="btn"
+                      style="padding: 6px 10px; font-size: 0.8rem; background: var(--bg);">
+                      <option value="Pending" {% if a.status=='Pending' %}selected{% endif %}>Pending</option>
+                      <option value="Approved" {% if a.status=='Approved' %}selected{% endif %}>Approved</option>
+                      <option value="Completed" {% if a.status=='Completed' %}selected{% endif %}>Completed</option>
+                      <option value="Cancelled" {% if a.status=='Cancelled' %}selected{% endif %}>Cancelled</option>
+                    </select>
+                    <button class="btn btn-primary" type="submit"
+                      style="padding: 6px 12px; font-size: 0.8rem;">Update</button>
+                  </form>
+                  <form method="POST" action="/admin/delete-appointment/{{ a.id }}" style="display:inline;"
+                    onsubmit="return confirm('Are you sure you want to PERMANENTLY delete this appointment record?');">
+                    <button type="submit" class="btn"
+                      style="padding: 6px 12px; font-size: 0.8rem; color: var(--danger); border-color: rgba(239, 68, 68, 0.2);">🗑️</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="5" style="text-align: center; padding: 4rem; color: var(--muted);">
+                No appointments recorded in the system.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Physician Management Section -->
+  <div class="grid" style="margin-top: 3rem; margin-bottom: 4rem;">
+    <div class="col-12">
+      <h3 style="margin-bottom: 1.5rem; font-weight: 800; font-size: 1.2rem;">Physician Roster</h3>
+      <div class="table-container">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Doctor Name</th>
+              <th>Specialization</th>
+              <th>Available Days</th>
+              <th>Management</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for d in doctors %}
+            <tr>
+              <td style="font-weight: 600;">{{ d.name }}</td>
+              <td style="color: var(--muted);">{{ d.specialization }}</td>
+              <td style="font-size: 0.85rem;">{{ d.available_days }}</td>
+              <td>
+                <form method="POST" action="/admin/delete-doctor/{{ d.id }}"
+                  onsubmit="return confirm('WARNING: Deleting this doctor will also delete ALL their associated appointments. Proceed?');">
+                  <button type="submit" class="btn"
+                    style="padding: 6.5px 14px; font-size: 0.8rem; color: var(--danger); border-color: rgba(239, 68, 68, 0.2);">
+                    🗑️ Remove Doctor
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="4" style="text-align: center; padding: 3rem; color: var(--muted);">
+                No doctors registered. <a href="/admin/add-doctor" style="color: var(--primary);">Add one now.</a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </div>
 
 {% endblock %}

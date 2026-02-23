@@ -1,4 +1,6 @@
-from flask import Flask, render_template, request, redirect, session, url_for, flash, send_from_directory, jsonify
+from flask import Flask, render_template, request, redirect, session, url_for, flash, send_from_directory, jsonify, Response
+import csv
+import io
 import sqlite3
 import os
 import random
@@ -15,8 +17,8 @@ DB_NAME = "database.db"
 app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
 app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
 app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'True') == 'True'
-app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+app.config['MAIL_USERNAME'] = 'medibook36@gmail.com'
+app.config['MAIL_PASSWORD'] = 'iqxq xdaq swbm dzcc'
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', 'MediBook Alerts <noreply@medibook.com>')
 
 mail = Mail(app)
@@ -43,9 +45,9 @@ def setup_static_files():
         os.makedirs("static")
         print("✅ Created static folder")
     
-    if os.path.exists("style.css") and not os.path.exists("static/style.css"):
+    if os.path.exists("style.css"):
         shutil.copy("style.css", "static/style.css")
-        print("✅ Copied style.css to static folder")
+        print("✅ Synced style.css to static folder")
     
     if os.path.exists("static/style.css"):
         print("✅ style.css exists in static folder")
@@ -205,6 +207,12 @@ def ai_response(user_message, user_id=None):
         return "You're very welcome! I'm glad I could help. Is there anything else you need assistance with? 😊"
 
     # ========== APPOINTMENT BOOKING ==========
+    if any(k in message_lower for k in ["how to book", "book an appointment", "booking", "schedule"]):
+        return "📅 <b>To book an appointment:</b><br>1. Go to the <b>'Doctors'</b> page.<br>2. Choose your preferred specialist.<br>3. Select an available date and time slot.<br>4. Click 'Confirm Booking'.<br><br><a href='/doctors' class='btn btn-primary' style='width:100%; text-align:center; padding:10px; display:inline-block;'>🔍 Browse Doctors & Book</a>"
+
+    if any(k in message_lower for k in ["cancel", "how to cancel", "remove booking"]):
+        return "❌ <b>To cancel an appointment:</b><br>1. Log in to your account.<br>2. Navigate to your <b>'Dashboard'</b>.<br>3. Find the appointment you wish to cancel.<br>4. Click the 'Cancel' button next to it.<br><br><a href='/dashboard' class='btn btn-primary' style='width:100%; text-align:center; padding:10px; display:inline-block;'>📊 Go to Dashboard</a>"
+
     if any(k in message_lower for k in ["book", "appointment", "schedule"]):
         try:
             conn = get_db()
@@ -268,8 +276,23 @@ def ai_response(user_message, user_id=None):
     if any(k in message_lower for k in ["hour", "open", "timing"]):
         return "🕒 <b>Clinic Hours:</b><br>• Mon-Fri: 9AM - 7PM<br>• Sat: 10AM - 4PM<br>• Sun: Emergency Only<br><br><b>Location:</b><br>123 Medical St, Health City"
 
-    if any(k in message_lower for k in ["contact", "phone", "email"]):
-        return "📞 <b>Contact Support:</b><br>Phone: +1 555-123-4567<br>Email: support@medibook.com<br><br><a href='/contact' class='btn' style='width:100%; text-align:center; padding:8px; border:1px solid var(--card-border); display:inline-block;'>Form Support</a>"
+    if any(k in message_lower for k in ["contact", "phone", "email", "support"]):
+        return "📞 <b>Contact Support:</b><br>Phone: +1 555-123-4567<br>Email: support@medibook.com<br><br><a href='/contact' class='btn' style='width:100%; text-align:center; padding:8px; border:1px solid var(--card-border); display:inline-block;'>Open Contact Form</a>"
+
+    if any(k in message_lower for k in ["location", "address", "where"]):
+        return "📍 <b>Clinic Location:</b><br>123 Medical Street, Health City, Metro State.<br><br><i>Valet parking is available for all patients.</i>"
+
+    if any(k in message_lower for k in ["fee", "price", "cost", "payment"]):
+        return "💰 <b>Service Fees:</b><br>• General Consultation: $50<br>• Specialist Consultation: $80<br>• Follow-up Visit: $30<br><br><i>We accept all major insurance providers and credit cards.</i>"
+
+    if any(k in message_lower for k in ["reschedule", "change", "edit"]):
+        return "🔄 <b>Need to change your appointment?</b><br>You can easily reschedule from your dashboard or by calling us.<br><br><a href='/dashboard' class='btn btn-primary' style='width:100%; text-align:center; display:inline-block;'>Manage Appointments</a>"
+
+    if any(k in message_lower for k in ["headache", "migrate", "pain"]):
+        return "🤕 <b>Headache Advice:</b><br>If you have a persistent headache, please rest in a dark room and stay hydrated. <br><br>💡 <b>Tip:</b> If the pain is severe or accompanied by blurred vision, please book a <b>General Physician</b> immediately."
+
+    if any(k in message_lower for k in ["fever", "cough", "flu", "cold"]):
+        return "🤒 <b>Fever & Cough Advice:</b><br>Monitor your temperature and get plenty of rest. If your fever exceeds 102°F (39°C), or you have difficulty breathing, please consult a doctor.<br><br><a href='/doctors' class='btn btn-primary' style='width:100%; text-align:center; display:inline-block;'>Book a Consultation</a>"
 
     # ========== DEFAULT ==========
     return """
@@ -322,6 +345,18 @@ def index():
                          stats=stats, 
                          doctors_count=doctors_count,
                          booked_slots=booked_slots)
+
+
+@app.route("/about")
+def about():
+    """About page route"""
+    return render_template("about.html")
+
+
+@app.route("/contact")
+def contact():
+    """Contact page route"""
+    return render_template("contact.html")
 
 
 @app.route("/register", methods=["GET", "POST"])
@@ -412,6 +447,8 @@ def dashboard():
         return redirect("/login")
 
     conn = get_db()
+    
+    # Get all appointments for the user
     appointments = conn.execute("""
         SELECT appointments.*, doctors.name as doctor_name, doctors.specialization as doctor_specialization
         FROM appointments
@@ -419,9 +456,32 @@ def dashboard():
         WHERE appointments.user_id = ?
         ORDER BY appointments.id DESC
     """, (session["user_id"],)).fetchall()
+    
+    # Calculate specific stats
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    today_count = conn.execute("SELECT COUNT(*) as count FROM appointments WHERE user_id=? AND date=? AND status!='Cancelled'", (session["user_id"], today_str)).fetchone()["count"]
+    completed_count = conn.execute("SELECT COUNT(*) as count FROM appointments WHERE user_id=? AND status='Completed'", (session["user_id"],)).fetchone()["count"]
+    pending_count = conn.execute("SELECT COUNT(*) as count FROM appointments WHERE user_id=? AND status='Pending'", (session["user_id"],)).fetchone()["count"]
+    
+    # Get the "Next" upcoming appointment
+    next_appt = conn.execute("""
+        SELECT a.date, a.time, d.name as doctor_name 
+        FROM appointments a 
+        JOIN doctors d ON a.doctor_id = d.id 
+        WHERE a.user_id = ? AND a.status != 'Cancelled' 
+        AND (a.date > date('now') OR (a.date = date('now') AND a.time >= time('now')))
+        ORDER BY a.date ASC, a.time ASC 
+        LIMIT 1
+    """, (session["user_id"],)).fetchone()
+    
     conn.close()
 
-    return render_template("user_dashboard.html", appointments=appointments)
+    return render_template("user_dashboard.html", 
+                          appointments=appointments,
+                          today_count=today_count,
+                          completed_count=completed_count,
+                          pending_count=pending_count,
+                          next_appt=next_appt)
 
 
 @app.route("/doctors")
@@ -525,12 +585,6 @@ def book_appointment(doctor_id):
                         <p style="margin: 5px 0;"><b>Time:</b> {time}</p>
                         <p style="margin: 5px 0;"><b>Status:</b> <span style="color: #eab308; font-weight: bold;">PENDING</span></p>
                     </div>
-                    <p><b>Note:</b> We will send you another notification once the doctor approves this appointment.</p>
-                    <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
-                    <p style="font-size: 0.85rem; color: #666;">
-                        ⏰ <b>Reminder Service:</b> Our system will automatically send you a reminder email 24 hours before your scheduled visit.
-                    </p>
-                    <p style="font-size: 0.85rem; color: #666;">If you need to change your appointment, please visit your dashboard.</p>
                 </div>
                 """
             )
@@ -556,38 +610,26 @@ def book_appointment(doctor_id):
         ORDER BY date, time
     """, (doctor_id,)).fetchall()
     
-    # Get user's upcoming appointments
+    # Get user's own appointments to highlight conflicts
     user_upcoming_data = conn.execute("""
-        SELECT date, time, doctors.name as doctor_name 
-        FROM appointments 
-        JOIN doctors ON doctors.id = appointments.doctor_id
+        SELECT date, time FROM appointments 
         WHERE user_id = ? AND status != 'Cancelled'
         AND date >= date('now')
-        ORDER BY date, time
     """, (session["user_id"],)).fetchall()
+    
+    # Convert Row objects to dictionaries so they can be JSON serialized in the template
+    booked_slots_list = [dict(row) for row in booked_slots_data]
+    user_upcoming_list = [dict(row) for row in user_upcoming_data]
     
     # Get today's date for min attribute
     today = datetime.now().strftime("%Y-%m-%d")
-    
-    # Convert to regular dictionaries
-    booked_slots = []
-    for slot in booked_slots_data:
-        booked_slots.append({"date": slot["date"], "time": slot["time"]})
-    
-    user_upcoming = []
-    for app in user_upcoming_data:
-        user_upcoming.append({
-            "date": app["date"], 
-            "time": app["time"],
-            "doctor_name": app["doctor_name"]
-        })
     
     conn.close()
     
     return render_template("book_appointment.html", 
                          doctor=doctor, 
-                         booked_slots=booked_slots,
-                         user_upcoming=user_upcoming,
+                         booked_slots=booked_slots_list,
+                         user_upcoming=user_upcoming_list,
                          today=today)
 
 
@@ -654,10 +696,38 @@ def cancel_appointment(appointment_id):
         return redirect("/login")
 
     conn = get_db()
+    # Get appointment info for the email
+    appointment_data = conn.execute("""
+        SELECT users.email, users.name as user_name, doctors.name as doctor_name, appointments.date, appointments.time 
+        FROM appointments 
+        JOIN users ON users.id = appointments.user_id 
+        JOIN doctors ON doctors.id = appointments.doctor_id 
+        WHERE appointments.id = ? AND appointments.user_id = ?
+    """, (appointment_id, session["user_id"])).fetchone()
+
     conn.execute("UPDATE appointments SET status='Cancelled' WHERE id=? AND user_id=?",
                  (appointment_id, session["user_id"]))
     conn.commit()
     conn.close()
+
+    if appointment_data:
+        send_email(
+            "Appointment Cancelled ❌",
+            appointment_data["email"],
+            f"""
+            <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 12px;">
+                <h2 style="color: #ef4444;">Appointment Cancelled</h2>
+                <p>Hello {appointment_data['user_name']},</p>
+                <p>Your appointment has been successfully cancelled as requested.</p>
+                <div style="background: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                    <p style="margin: 5px 0;"><b>Doctor:</b> Dr. {appointment_data['doctor_name']}</p>
+                    <p style="margin: 5px 0;"><b>Date:</b> {appointment_data['date']}</p>
+                    <p style="margin: 5px 0;"><b>Time:</b> {appointment_data['time']}</p>
+                </div>
+                <p>If you wish to book a new appointment, please visit our website.</p>
+            </div>
+            """
+        )
 
     flash("✅ Appointment cancelled!", "success")
     return redirect("/dashboard")
@@ -701,20 +771,11 @@ def get_suggestions():
     """Get quick suggestion questions"""
     suggestions = [
         "How do I book an appointment?",
-        "Find me a cardiologist",
-        "Cancel my appointment",
-        "Clinic working hours",
-        "Contact information",
-        "My appointment status",
-        "What doctors are available?",
-        "How to reschedule appointment?",
-        "Book with a dentist",
-        "Emergency contact",
-        "Medicine for headache",
-        "Fever and cough symptoms",
-        "Clinic location",
-        "Appointment fees",
-        "Available time slots"
+        "How do I cancel an appointment?",
+        "What are the clinic working hours?",
+        "Find a doctor",
+        "View my appointment status",
+        "Contact support"
     ]
     
     return jsonify({'suggestions': suggestions})
@@ -738,8 +799,14 @@ def admin_dashboard():
         JOIN users ON users.id = appointments.user_id
         JOIN doctors ON doctors.id = appointments.doctor_id
         ORDER BY appointments.id DESC
-        LIMIT 20
+        LIMIT 50
     """).fetchall()
+
+    # Enhanced Admin Stats
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    today_appts = conn.execute("SELECT COUNT(*) as total FROM appointments WHERE date = ? AND status != 'Cancelled'", (today_str,)).fetchone()["total"]
+    pending_appts = conn.execute("SELECT COUNT(*) as total FROM appointments WHERE status = 'Pending'").fetchone()["total"]
+    completed_appts = conn.execute("SELECT COUNT(*) as total FROM appointments WHERE status = 'Completed'").fetchone()["total"]
     
     # Get all doctors for display
     doctors = conn.execute("SELECT * FROM doctors ORDER BY id DESC").fetchall()
@@ -749,7 +816,9 @@ def admin_dashboard():
     return render_template("admin_dashboard.html",
                            users_count=users_count,
                            doctors_count=doctors_count,
-                           appointments_count=appointments_count,
+                           today_appts=today_appts,
+                           pending_appts=pending_appts,
+                           completed_appts=completed_appts,
                            appointments=appointments,
                            doctors=doctors)
 
@@ -799,71 +868,116 @@ def update_status(appointment_id):
     conn.execute("UPDATE appointments SET status=? WHERE id=?", (status, appointment_id))
     conn.commit()
     conn.close()
-
+    
     if appointment_data:
+        status_color = "#22c55e" if status == "Confirmed" else "#ef4444"
         send_email(
-            f"Appointment Status: {status} 🏥",
-            appointment_data['email'],
-            f"<h3>Status Update</h3><p>Hello {appointment_data['user_name']},</p><p>Your appointment with <b>Dr. {appointment_data['doctor_name']}</b> on <b>{appointment_data['date']}</b> has been updated to: <b>{status}</b>.</p><p>Check your dashboard for more details.</p>"
+            f"Appointment {status}! 🩺",
+            appointment_data["email"],
+            f"""
+            <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 12px;">
+                <h2 style="color: {status_color};">Appointment {status}</h2>
+                <p>Hello {appointment_data['user_name']},</p>
+                <p>The status of your appointment with <b>Dr. {appointment_data['doctor_name']}</b> has been updated.</p>
+                <div style="background: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                    <p style="margin: 5px 0;"><b>Date:</b> {appointment_data['date']}</p>
+                    <p style="margin: 5px 0;"><b>Time:</b> {appointment_data['time']}</p>
+                    <p style="margin: 5px 0;"><b>New Status:</b> <span style="color: {status_color}; text-transform: uppercase; font-weight: bold;">{status}</span></p>
+                </div>
+                {"<p>We look forward to seeing you!</p>" if status == "Confirmed" else "<p>If you have any questions, please contact our support team.</p>"}
+            </div>
+            """
         )
-
-    flash("✅ Status updated & Notification sent!", "success")
+    
+    flash(f"✅ Appointment status updated to {status}!", "success")
     return redirect("/admin")
 
-
-# -------------------- EXTRA: Add more doctors route --------------------
-@app.route("/add-more-doctors")
-def add_more_doctors():
+@app.route("/admin/delete-appointment/<int:appointment_id>", methods=["POST"])
+def delete_appointment(appointment_id):
     if "user_id" not in session or session.get("role") != "admin":
         return redirect("/login")
     
-    extra_doctors = [
-        ("Dr. Lisa Wang", "Psychiatrist", "Mon, Wed, Fri", "10:00 AM - 2:00 PM, 4:00 PM - 7:00 PM"),
-        ("Dr. Raj Patel", "ENT Specialist", "Tue, Thu, Sat", "9:00 AM - 1:00 PM, 3:00 PM - 6:00 PM"),
-        ("Dr. Maria Garcia", "Ophthalmologist", "Mon, Tue, Thu, Fri", "8:30 AM - 12:30 PM, 2:30 PM - 5:30 PM")
-    ]
-    
     conn = get_db()
-    for doctor in extra_doctors:
-        try:
-            conn.execute("""
-                INSERT INTO doctors(name, specialization, available_days, time_slots)
-                VALUES(?,?,?,?)
-            """, doctor)
-        except:
-            continue
-    
+    conn.execute("DELETE FROM appointments WHERE id=?", (appointment_id,))
     conn.commit()
     conn.close()
     
-    flash("✅ Additional doctors added successfully!", "success")
+    flash("🗑️ Appointment permanently deleted!", "success")
     return redirect("/admin")
 
+@app.route("/admin/delete-doctor/<int:doctor_id>", methods=["POST"])
+def delete_doctor(doctor_id):
+    if "user_id" not in session or session.get("role") != "admin":
+        return redirect("/login")
+    
+    conn = get_db()
+    # Also delete appointments associated with this doctor to avoid foreign key/logic issues
+    conn.execute("DELETE FROM appointments WHERE doctor_id=?", (doctor_id,))
+    conn.execute("DELETE FROM doctors WHERE id=?", (doctor_id,))
+    conn.commit()
+    conn.close()
+    
+    flash("🗑️ Doctor and their associated appointments deleted!", "success")
+    return redirect("/admin")
 
-# -------------------- SIMPLE PAGES --------------------
-@app.route("/about")
-def about():
-    return render_template("about.html")
+@app.route("/admin/export-appointments")
+def export_appointments():
+    """Export appointments from the last 30 days as CSV"""
+    if "user_id" not in session or session.get("role") != "admin":
+        return redirect("/login")
+
+    conn = get_db()
+    # Fetch data for the last 30 days
+    appointments = conn.execute("""
+        SELECT 
+            a.id, 
+            u.name as patient_name, 
+            u.email as patient_email,
+            d.name as doctor_name, 
+            a.date, 
+            a.time, 
+            a.status
+        FROM appointments a
+        JOIN users u ON u.id = a.user_id
+        JOIN doctors d ON d.id = a.doctor_id
+        WHERE a.date >= date('now', '-30 days')
+        ORDER BY a.date DESC
+    """).fetchall()
+    conn.close()
+
+    # Generate CSV in memory
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Header row
+    writer.writerow(['ID', 'Patient Name', 'Patient Email', 'Doctor Name', 'Date', 'Time', 'Status'])
+    
+    # Data rows
+    for row in appointments:
+        writer.writerow([
+            row['id'], 
+            row['patient_name'], 
+            row['patient_email'],
+            row['doctor_name'], 
+            row['date'], 
+            row['time'], 
+            row['status']
+        ])
+
+    output.seek(0)
+    
+    # Return as downloadable file
+    filename = f"medibook_report_{datetime.now().strftime('%Y%m%d')}.csv"
+    return Response(
+        output.getvalue(),
+        mimetype="text/csv",
+        headers={"Content-disposition": f"attachment; filename={filename}"}
+    )
 
 
-@app.route("/contact")
-def contact():
-    return render_template("contact.html")
-
+# Initialize files and DB on startup (required for Gunicorn/Production)
+setup_static_files()
+init_db()
 
 if __name__ == "__main__":
-    # Initialize database
-    init_db()
-    
-    # Setup static files
-    setup_static_files()
-    
-    # Get port from environment variable (Render provides this)
-    port = int(os.environ.get("PORT", 5000))
-    
-    # Run the app
-    app.run(
-        host='0.0.0.0',
-        port=port,
-        debug=True
-    )
+    app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))

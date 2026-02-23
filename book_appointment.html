@@ -1,104 +1,338 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="hero">
-  <h1>Book Appointment</h1>
-  <p>Doctor: <b>{{ doctor.name }}</b> ({{ doctor.specialization }})</p>
-</div>
+<style>
+  /* Premium Booking Page Styling */
+  .booking-hero {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  }
 
-<div class="form-wrap" style="max-width: 800px; margin: 0 auto;">
-  <div class="grid">
-    <!-- Left Column: Date & Time Selection -->
-    <div class="col-7">
-      <h2>Choose Date & Time</h2>
+  .booking-hero h1 {
+    font-size: 2.2rem;
+    font-weight: 800;
+    margin: 0;
+  }
+
+  .booking-hero p {
+    margin: 10px 0 0 0;
+    color: var(--muted);
+    font-size: 1.1rem;
+  }
+
+  .booking-hero p b {
+    color: var(--primary2);
+  }
+
+  /* Main Form Layout */
+  .booking-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 2rem;
+    align-items: start;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* Left Side: Steps */
+  .booking-steps-card {
+    background: var(--glass);
+    border: 1px solid var(--card-border);
+    border-radius: 28px;
+    padding: 2.5rem;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(20px);
+  }
+
+  .step-section {
+    margin-bottom: 2rem;
+  }
+
+  .step-label {
+    display: block;
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: var(--muted);
+  }
+
+  .step-title {
+    font-size: 1.8rem;
+    font-weight: 800;
+    margin-bottom: 1.5rem;
+    letter-spacing: -0.01em;
+  }
+
+  /* Custom Input Styling matching screenshot */
+  .custom-input {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 1rem 1.25rem;
+    color: white;
+    width: 100%;
+    font-size: 1.1rem;
+    outline: none;
+    transition: all 0.3s;
+    appearance: none;
+  }
+
+  .custom-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 15px rgba(79, 70, 229, 0.2);
+    background: rgba(15, 23, 42, 0.9);
+  }
+
+  .custom-input::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    cursor: pointer;
+  }
+
+  /* Custom select specific */
+  select.custom-input {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1.25rem center;
+    background-size: 1.25rem;
+  }
+
+  /* Action Buttons */
+  .booking-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 2rem;
+  }
+
+  .btn-confirm {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    padding: 1rem;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: white;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+    transition: all 0.3s;
+    width: 100%;
+  }
+
+  .btn-confirm:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
+  }
+
+  .btn-confirm:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  .btn-back {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--card-border);
+    padding: 0.75rem;
+    border-radius: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    text-align: center;
+    text-decoration: none;
+    transition: all 0.2s;
+    font-size: 0.95rem;
+  }
+
+  .btn-back:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+  }
+
+  /* Sidebar Widget */
+  .status-widget {
+    background: #111a2e;
+    border: 1px solid var(--card-border);
+    border-radius: 28px;
+    padding: 2rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  }
+
+  .status-widget h3 {
+    font-size: 1.3rem;
+    font-weight: 800;
+    margin-bottom: 2rem;
+  }
+
+  .availability-box {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--card-border);
+    border-radius: 18px;
+    padding: 1.25rem;
+    margin-bottom: 2rem;
+  }
+
+  .availability-label {
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+  }
+
+  .availability-text {
+    font-weight: 700;
+    line-height: 1.6;
+    color: #cbd5e1;
+  }
+
+  /* Legend System */
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #94a3b8;
+  }
+
+  .legend-box {
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+  }
+
+  /* Mobile Overrides */
+  @media (max-width: 1024px) {
+    .booking-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .status-widget {
+      display: block;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .booking-hero {
+      padding: 1.5rem;
+      text-align: center;
+    }
+
+    .booking-hero h1 {
+      font-size: 1.8rem;
+    }
+
+    .booking-steps-card {
+      padding: 1.5rem;
+      border-radius: 20px;
+    }
+
+    .step-title {
+      font-size: 2rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .btn-confirm {
+      padding: 1rem;
+      font-size: 1rem;
+    }
+  }
+</style>
+
+<div class="container" style="padding-top: 2rem;">
+  <div class="booking-hero">
+    <h1>Book Appointment</h1>
+    <p>Doctor: <b>Dr. {{ doctor.name }}</b> ({{ doctor.specialization }})</p>
+  </div>
+
+  <div class="booking-grid">
+    <!-- Left Column: Booking Steps -->
+    <div class="booking-steps-card">
+      <h2 class="step-title">Choose Date & Time</h2>
       <form method="POST" id="bookingForm">
-        <div class="input">
-          <label>Step 1: Select Date</label>
-          <input type="date" id="appointmentDate" name="date" required min="{{ today }}" />
+
+        <div class="step-section">
+          <label class="step-label">Step 1: Select Date</label>
+          <input type="date" id="appointmentDate" name="date" class="custom-input" required min="{{ today }}" />
         </div>
 
-        <div class="input" style="margin-top: 24px;">
-          <label>Step 2: Select Session</label>
-          <select id="periodSelector">
-            <option value="morning">☀️ Morning Session (Before 12 PM)</option>
-            <option value="evening">🌙 Evening Session (After 12 PM)</option>
+        <div class="step-section">
+          <label class="step-label">Step 2: Select Session</label>
+          <select id="periodSelector" class="custom-input">
+            <option value="morning">☀️ Morning Session</option>
+            <option value="evening">🌙 Evening Session</option>
           </select>
         </div>
 
-        <div class="input" style="margin-top: 24px;">
-          <label style="display: flex; justify-content: space-between; align-items: center;">
+        <div class="step-section">
+          <label class="step-label">
             Step 3: Select Specific Time
-            <span id="slotCount" style="font-size: 0.75rem; font-weight: 500; color: var(--muted);"></span>
+            <span id="slotCount"
+              style="float: right; font-size: 0.8rem; color: var(--success); font-weight: 800;"></span>
           </label>
-
-          <div id="slotContainer"
-            style="margin-top: 15px; border: 1px solid var(--border); border-radius: 16px; background: rgba(0,0,0,0.1); padding: 15px;">
-            <!-- Specific Time Dropdown -->
-            <select id="timeSlotDropdown" name="time" required disabled>
-              <option value="">Choose a time...</option>
-            </select>
-
-            <p id="timeSlotMessage" style="color: var(--muted); font-size: 0.85rem; margin-top: 10px; display: none;">
-            </p>
-          </div>
-
-          <small id="timeError" style="color: var(--danger); display: none; margin-top: 8px;">
-            Please select a time slot.
-          </small>
+          <select id="timeSlotDropdown" name="time" class="custom-input" required disabled>
+            <option value="">Choose a time...</option>
+          </select>
+          <p id="timeSlotMessage" style="color: var(--muted); font-size: 0.85rem; margin-top: 10px; display: none;"></p>
         </div>
 
-        <div style="margin-top: 30px;">
-          <button class="btn btn-primary" type="submit" id="submitBtn" disabled>Confirm Booking</button>
-          <a class="btn" href="/doctors" style="margin-left: 10px;">Back to Doctors</a>
+        <div class="booking-actions">
+          <button class="btn-confirm" type="submit" id="submitBtn" disabled>Confirm Booking</button>
+          <a class="btn-back" href="/doctors">Back to Doctors</a>
         </div>
       </form>
     </div>
 
     <!-- Right Column: Status & Info -->
-    <div class="col-5">
-      <div class="card" style="height: 100%; background: rgba(255,255,255,0.02);">
-        <h3>Booking Status</h3>
+    <div class="status-widget">
+      <h3>Booking Status</h3>
 
-        <div id="statusInfo" style="margin-top: 15px;">
-          <div
-            style="padding: 12px; border-radius: 12px; border: 1px solid var(--border); background: rgba(255,255,255,0.05);">
-            <p style="font-size: 0.9rem; color: var(--muted);">Doctor Availability:</p>
-            <p style="font-weight: 600;">{{ doctor.time_slots }}</p>
-          </div>
+      <div class="availability-box">
+        <div class="availability-label">Doctor Availability:</div>
+        <div class="availability-text">{{ doctor.time_slots }}</div>
+      </div>
+
+      <div style="margin-top: 2rem;">
+        <p
+          style="margin-bottom: 1rem; color: var(--muted); font-weight: 800; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.1em;">
+          Legend:</p>
+
+        <div class="legend-item">
+          <div class="legend-box" style="background: rgba(34, 197, 94, 0.2); border: 2px solid #22c55e;"></div>
+          <span>Available</span>
         </div>
 
-        <!-- Legend -->
-        <div style="margin-top: 20px; font-size: 0.8rem;">
-          <p style="margin-bottom: 8px; color: var(--muted);"><b>Legend:</b></p>
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
-            <div
-              style="width: 12px; height: 12px; border-radius: 3px; background: rgba(34, 197, 94, 0.2); border: 1px solid #22c55e;">
-            </div> Available
-          </div>
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
-            <div
-              style="width: 12px; height: 12px; border-radius: 3px; background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444;">
-            </div> Already Booked
-          </div>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <div
-              style="width: 12px; height: 12px; border-radius: 3px; background: rgba(234, 179, 8, 0.2); border: 1px solid #eab308;">
-            </div> Your Other Appointment
-          </div>
+        <div class="legend-item">
+          <div class="legend-box" style="background: rgba(239, 68, 68, 0.2); border: 2px solid #ef4444;"></div>
+          <span>Already Booked</span>
+        </div>
+
+        <div class="legend-item">
+          <div class="legend-box" style="background: rgba(234, 179, 8, 0.2); border: 2px solid #eab308;"></div>
+          <span>Your Other Appointment</span>
         </div>
       </div>
     </div>
   </div>
 </div>
 
+<!-- Footer matched back to standard container if needed -->
+<div
+  style="text-align: center; margin-top: 3rem; padding-bottom: 2rem; color: var(--muted); font-size: 0.95rem; font-weight: 600;">
+  © 2024 MediBook - Appointment Booking System
+</div>
+
 <script>
   document.addEventListener('DOMContentLoaded', function () {
     const dateInput = document.getElementById('appointmentDate');
-
     const timeSlotDropdown = document.getElementById('timeSlotDropdown');
     const timeSlotMessage = document.getElementById('timeSlotMessage');
     const submitBtn = document.getElementById('submitBtn');
     const form = document.getElementById('bookingForm');
+    const periodSelector = document.getElementById('periodSelector');
+    const countSpan = document.getElementById('slotCount');
 
     // Data from Server
     const availableDaysStr = "{{ doctor.available_days }}";
@@ -106,44 +340,10 @@
     const bookedSlots = JSON.parse('{{ booked_slots | tojson | safe }}');
     const userUpcoming = JSON.parse('{{ user_upcoming | tojson | safe }}');
 
-    // Helper: Map days string to numbers (0-6)
-    function getAvailableDayNums(str) {
-      const map = { 'sun': 0, 'mon': 1, 'tue': 2, 'wed': 3, 'thu': 4, 'fri': 5, 'sat': 6 };
-      if (str.toLowerCase() === 'mon-sat') return [1, 2, 3, 4, 5, 6];
-      if (str.toLowerCase() === 'mon-sun' || str.toLowerCase() === 'daily') return [0, 1, 2, 3, 4, 5, 6];
-
-      return str.toLowerCase().split(',').map(s => {
-        const key = s.trim().substring(0, 3);
-        return map[key];
-      }).filter(n => n !== undefined);
-    }
-
-    const availableDayNums = getAvailableDayNums(availableDaysStr);
-
-    // Helper: Generate time slots from range
-    function generateSlots(rangeStr) {
-      const slots = [];
-      const ranges = rangeStr.split(',');
-
-      ranges.forEach(range => {
-        const parts = range.split('-').map(p => p.trim());
-        if (parts.length === 2) {
-          let current = moment(parts[0], "h:mm A");
-          const end = moment(parts[1], "h:mm A");
-
-          while (current.isBefore(end)) {
-            slots.push(current.format("hh:mm A"));
-            current.add(30, 'minutes'); // 30 min intervals
-          }
-        }
-      });
-      return slots;
-    }
-
-    // Load Moment.js if not present (simplified fallback if needed, but assuming or adding it)
-    // For now, let's use a simpler manual parser since we don't know if moment is available
     function parseTime(timeStr) {
-      const [time, modifier] = timeStr.split(' ');
+      const parts = timeStr.trim().split(' ');
+      if (parts.length < 2) return 0;
+      const [time, modifier] = parts;
       let [hours, minutes] = time.split(':');
       if (hours === '12') hours = '00';
       if (modifier === 'PM') hours = parseInt(hours, 10) + 12;
@@ -156,7 +356,10 @@
       const mod = h >= 12 ? 'PM' : 'AM';
       if (h > 12) h -= 12;
       if (h === 0) h = 12;
-      return `${h}:${m === 0 ? '00' : m} ${mod}`;
+      // Pad hour and minute with leading zeros to match database format (e.g., "09:00 AM")
+      const hh = h.toString().padStart(2, '0');
+      const mm = m.toString().padStart(2, '0');
+      return `${hh}:${mm} ${mod}`;
     }
 
     function getGeneratedSlots(rangeStr) {
@@ -176,10 +379,8 @@
     }
 
     const allPossibleSlots = getGeneratedSlots(timeRangesStr);
-    const periodSelector = document.getElementById('periodSelector');
     let currentPeriod = 'morning';
 
-    // Dropdown Logic
     periodSelector.addEventListener('change', function () {
       currentPeriod = this.value;
       if (dateInput.value) renderSlots(allPossibleSlots);
@@ -189,42 +390,29 @@
       submitBtn.disabled = !this.value;
     });
 
-    // Restrict Calendar to Available Days
     dateInput.addEventListener('input', function () {
-      const date = new Date(this.value);
-      const day = date.getDay();
-
-      if (!availableDayNums.includes(day)) {
-        alert(`The doctor is not available on this day (${date.toLocaleDateString('en-US', { weekday: 'long' })}).\nAvailable days: ${availableDaysStr}`);
-        this.value = '';
-        renderSlots([]);
-      } else {
-        renderSlots(allPossibleSlots);
-      }
+      renderSlots(allPossibleSlots);
     });
 
     function getPeriod(timeStr) {
-      const hour = parseTime(timeStr) / 60;
-      return hour < 12 ? 'morning' : 'evening';
+      return (parseTime(timeStr) / 60) < 12 ? 'morning' : 'evening';
     }
 
     function renderSlots(slots) {
-      // Clear existing options
       timeSlotDropdown.innerHTML = '<option value="">Choose a time...</option>';
       timeSlotDropdown.disabled = true;
       submitBtn.disabled = true;
       timeSlotMessage.style.display = 'none';
 
-      if (slots.length === 0) return;
+      if (!dateInput.value) return;
 
       const selectedDate = dateInput.value;
       const filteredSlots = slots.filter(slot => getPeriod(slot) === currentPeriod);
 
-      const countSpan = document.getElementById('slotCount');
       countSpan.textContent = filteredSlots.length > 0 ? `${filteredSlots.length} available` : 'No slots';
 
       if (filteredSlots.length === 0) {
-        timeSlotMessage.textContent = `No ${currentPeriod} slots available for this date.`;
+        timeSlotMessage.textContent = `No ${currentPeriod} slots available.`;
         timeSlotMessage.style.display = 'block';
         return;
       }
@@ -236,31 +424,15 @@
         option.value = slot;
         option.textContent = slot;
 
-        // Check if already booked
         const isBooked = bookedSlots.some(b => b.date === selectedDate && b.time === slot);
-        if (isBooked) {
-          option.disabled = true;
-          option.textContent += ' (Already Booked)';
-        }
+        if (isBooked) { option.disabled = true; option.textContent += ' (Booked)'; }
 
-        // Check if user has conflict
         const hasConflict = userUpcoming.some(u => u.date === selectedDate && u.time === slot);
-        if (hasConflict) {
-          option.disabled = true;
-          option.textContent += ' (Your Conflict)';
-        }
+        if (hasConflict) { option.disabled = true; option.textContent += ' (Conflict)'; }
 
         timeSlotDropdown.appendChild(option);
       });
     }
-
-    // Form Validation early
-    form.addEventListener('submit', function (e) {
-      if (!timeSlotDropdown.value) {
-        e.preventDefault();
-        document.getElementById('timeError').style.display = 'block';
-      }
-    });
   });
 </script>
 

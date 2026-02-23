@@ -1,97 +1,110 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="hero" style="padding: 3rem 2rem; text-align: left;">
-  <div style="max-width: 800px;">
-    <h1>Dashboard</h1>
-    <p>Welcome back, <b>{{ session.get("name") }}</b>. Here's what's happening with your health today.</p>
-  </div>
-</div>
-
-<!-- Stats Row -->
-<div class="stats-row">
-  <div class="stat-item">
-    <div class="label">Total Bookings</div>
-    <div class="value">{{ appointments|length }}</div>
-    <div class="trend up"><span>↑</span> Overall history</div>
-  </div>
-  <div class="stat-item">
-    <div class="label">Pending</div>
-    <div class="value">
-      {% set pending_count = appointments|selectattr('status', 'equalto', 'Pending')|list|length %}
-      {{ pending_count }}
+<div class="container" style="padding-top: 2rem;">
+  <div class="hero" style="padding: 3rem 2rem; text-align: left; margin-bottom: 2rem;">
+    <div style="max-width: 800px;">
+      <h1>Dashboard</h1>
+      <p>Welcome back, <b>{{ session.get("name") }}</b>. Here's what's happening with your health today.</p>
     </div>
-    <div class="trend" style="color: var(--warning);"><span>⏳</span> Awaiting approval</div>
   </div>
-  <div class="stat-item">
-    <div class="label">Active Doctors</div>
-    <div class="value">
-      {% set doctors_list = [] %}
-      {% for a in appointments %}
-      {% if a.doctor_name not in doctors_list %}
-      {% set _ = doctors_list.append(a.doctor_name) %}
-      {% endif %}
-      {% endfor %}
-      {{ doctors_list|length }}
-    </div>
-    <div class="trend up"><span>🏠</span> Multiple specialists</div>
-  </div>
-</div>
 
-<div class="table-container">
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Doctor Profile</th>
-        <th>Specialization</th>
-        <th>Date & Time</th>
-        <th>Status</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for a in appointments %}
-      <tr>
-        <td>
-          <div style="display: flex; align-items: center; gap: 0.75rem;">
-            <div
-              style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, var(--primary), var(--secondary)); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.8rem; color: white;">
-              {{ a.doctor_name[4] if a.doctor_name.startswith('Dr. ') else a.doctor_name[0] }}
+  <!-- Stats Row -->
+  <div class="stats-row">
+    <div class="stat-item">
+      <div class="label">Total History</div>
+      <div class="value">{{ appointments|length }}</div>
+      <div class="trend up"><span>📊</span> Total bookings made</div>
+    </div>
+
+    <div class="stat-item"
+      style="border-color: var(--primary); background: rgba(79, 70, 229, 0.05); border-width: 2px;">
+      <div class="label" style="color: var(--primary); font-weight: 800;">Next Appointment</div>
+      <div class="value" style="font-size: 1.5rem; padding: 4px 0;">
+        {% if next_appt %}
+        {{ next_appt.date }}
+        {% else %}
+        None
+        {% endif %}
+      </div>
+      <div class="trend" style="color: var(--text);">
+        {% if next_appt %}
+        🩺 <b>{{ next_appt.doctor_name }}</b> at {{ next_appt.time }}
+        {% else %}
+        <span>📅</span> No upcoming slots
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="stat-item">
+      <div class="label">Completed</div>
+      <div class="value" style="color: var(--success);">{{ completed_count }}</div>
+      <div class="trend up"><span>✅</span> Successful checkups</div>
+    </div>
+
+    <div class="stat-item">
+      <div class="label">Pending</div>
+      <div class="value" style="color: var(--warning);">{{ pending_count }}</div>
+      <div class="trend" style="color: #eab308;"><span>⏳</span> Awaiting approval</div>
+    </div>
+  </div>
+
+  <div class="table-container" style="margin-top: 2rem;">
+    <h3 style="margin-bottom: 1.5rem; font-weight: 800; font-size: 1.2rem;">Appointment History</h3>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Doctor Profile</th>
+          <th>Specialization</th>
+          <th>Date & Time</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in appointments %}
+        <tr>
+          <td>
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <div
+                style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, var(--primary), var(--secondary)); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.8rem; color: white;">
+                {{ a.doctor_name[4] if a.doctor_name.startswith('Dr. ') else a.doctor_name[0] }}
+              </div>
+              <span style="font-weight: 600;">{{ a.doctor_name }}</span>
             </div>
-            <span style="font-weight: 600;">{{ a.doctor_name }}</span>
-          </div>
-        </td>
-        <td style="color: var(--muted);">{{ a.doctor_specialization }}</td>
-        <td>
-          <div style="font-weight: 500;">{{ a.date }}</div>
-          <div style="font-size: 0.8rem; color: var(--muted);">{{ a.time }}</div>
-        </td>
-        <td>
-          <span class="badge 
-            {% if a.status == 'Approved' or a.status == 'Completed' %}success{% endif %}
-            {% if a.status == 'Cancelled' %}danger{% endif %}
-            {% if a.status == 'Pending' %}warn{% endif %}
-          ">
-            {{ a.status }}
-          </span>
-        </td>
-        <td>
-          {% if a.status == 'Pending' or a.status == 'Approved' %}
-          <a class="btn" href="/cancel/{{ a.id }}" style="padding: 0.4rem 0.75rem; font-size: 0.75rem;">Cancel
-            Booking</a>
-          {% else %}
-          <span style="color:var(--muted); font-size:.8rem;">No Actions</span>
-          {% endif %}
-        </td>
-      </tr>
-      {% else %}
-      <tr>
-        <td colspan="5" style="text-align: center; padding: 3rem; color: var(--muted);">
-          No appointments recorded. <a href="/doctors" style="color: var(--primary);">Book your first one!</a>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+          </td>
+          <td style="color: var(--muted);">{{ a.doctor_specialization }}</td>
+          <td>
+            <div style="font-weight: 500;">{{ a.date }}</div>
+            <div style="font-size: 0.8rem; color: var(--muted);">{{ a.time }}</div>
+          </td>
+          <td>
+            <span class="badge 
+              {% if a.status == 'Approved' or a.status == 'Completed' %}success{% endif %}
+              {% if a.status == 'Cancelled' %}danger{% endif %}
+              {% if a.status == 'Pending' %}warn{% endif %}
+            ">
+              {{ a.status }}
+            </span>
+          </td>
+          <td>
+            {% if a.status == 'Pending' or a.status == 'Approved' %}
+            <a class="btn" href="/cancel/{{ a.id }}" style="padding: 0.4rem 0.75rem; font-size: 0.75rem;">Cancel
+              Booking</a>
+            {% else %}
+            <span style="color:var(--muted); font-size:.8rem;">No Actions</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5" style="text-align: center; padding: 3rem; color: var(--muted);">
+            No appointments recorded. <a href="/doctors" style="color: var(--primary);">Book your first one!</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}
