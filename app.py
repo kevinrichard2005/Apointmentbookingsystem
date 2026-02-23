@@ -3,6 +3,7 @@ import csv
 import io
 import sqlite3
 import os
+import shutil
 import random
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
@@ -36,64 +37,21 @@ def send_email(subject, recipient, body_html):
     except Exception as e:
         print(f"❌ Email error: {e}")
 
-# ========== FIX FOR STATIC FILES ==========
-import shutil
-
-def setup_static_files():
-    """Ensure static files are set up properly"""
-    if not os.path.exists("static"):
-        os.makedirs("static")
-        print("✅ Created static folder")
-    
-    if os.path.exists("style.css"):
-        shutil.copy("style.css", "static/style.css")
-        print("✅ Synced style.css to static folder")
-    
-    if os.path.exists("static/style.css"):
-        print("✅ style.css exists in static folder")
-    
-    if os.path.exists("style.css"):
-        print("✅ style.css exists in root folder")
-
-@app.route('/style.css')
-def serve_css():
-    """Serve CSS from either static folder or root"""
-    if os.path.exists('static/style.css'):
-        return send_from_directory('static', 'style.css')
-    elif os.path.exists('style.css'):
-        return send_from_directory('.', 'style.css')
-    else:
-        return "/* Basic CSS */ body { background: #0b1220; color: white; }", 200, {'Content-Type': 'text/css'}
-
-@app.route('/debug-files')
-def debug_files():
-    """Debug endpoint to see file structure"""
-    result = []
-    result.append(f"<h3>Current Directory: {os.getcwd()}</h3>")
-    
-    result.append("<h4>Files in root:</h4>")
-    for item in os.listdir('.'):
-        if os.path.isdir(item):
-            result.append(f"📁 {item}/")
-            if item == 'static':
-                if os.path.exists('static'):
-                    result.append("Contents of static/:")
-                    for subitem in os.listdir('static'):
-                        result.append(f"  - {subitem}")
-        else:
-            result.append(f"📄 {item}")
-    
-    return "<br>".join(result)
-
-@app.route('/static/<path:filename>')
-def static_files(filename):
-    return send_from_directory('static', filename)
-# ========== END FIX ==========
-
+# ========== DATABASE & INITIALIZATION ==========
 def get_db():
     conn = sqlite3.connect(DB_NAME)
     conn.row_factory = sqlite3.Row
     return conn
+
+def setup_static_files():
+    """Ensure style.css is in the static folder for production"""
+    if not os.path.exists("static"):
+        os.makedirs("static")
+    if os.path.exists("style.css") and not os.path.exists("static/style.css"):
+        shutil.copy("style.css", "static/style.css")
+    elif os.path.exists("style.css"):
+        # Always sync for local development updates
+        shutil.copy("style.css", "static/style.css")
 
 def init_db():
     conn = get_db()
