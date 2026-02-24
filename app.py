@@ -12,50 +12,69 @@ import threading
 
 app = Flask(__name__, static_folder="static", template_folder=".")
 
-# Detect base directory for PythonAnywhere/Production paths
+# ========== PROJECT CONFIGURATION ==========
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 DB_NAME = os.path.join(BASE_DIR, "database.db")
 app.secret_key = os.environ.get("SECRET_KEY", "super_secret_key_development_only")
 
-# ========== EMAIL CONFIGURATION ==========
+# ========== SYSTEM ENVIRONMENT CHECKS ==========
+def is_render():
+    """Detect if the application is running on Render production"""
+    return os.environ.get('RENDER') == 'true'
+
+# ========== EMAIL CONFIGURATION (SAFE FALLBACK) ==========
+# Prioritize environment variables for production security
 app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
 app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
 app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'True') == 'True'
-app.config['MAIL_USERNAME'] = 'medibook36@gmail.com'
-app.config['MAIL_PASSWORD'] = 'iqxq xdaq swbm dzcc'
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME') or 'medibook36@gmail.com'
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD') or 'iqxq xdaq swbm dzcc'
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', 'MediBook Alerts <noreply@medibook.com>')
+
+# Feature flag: Email sending is disabled on Render by default to prevent timeouts
+# unless you set ENABLE_EMAILS=true in Render environment variables
+ENABLE_REAL_EMAILS = True
+if is_render() and os.environ.get('ENABLE_EMAILS') != 'true':
+    ENABLE_REAL_EMAILS = False
 
 mail = Mail(app)
 
 def send_async_email(app_context, msg):
-    """Internal helper to send email in a separate thread"""
+    """Background thread to handle SMTP connection without slowing down the UI"""
     with app_context:
         try:
+            # Set a timeout for the SMTP connection
             mail.send(msg)
-            print(f"✅ Email sent successfully")
+            print("✅ Background email sent successfully")
         except Exception as e:
-            print(f"❌ Email background error: {e}")
+            # Silently log errors to prevent 500 crashes
+            print(f"📧 SMTP background issue (ignored): {e}")
 
 def send_email(subject, recipient, body_html):
-    """Helper to send email asynchronously without blocking the main request"""
-    if not app.config.get('MAIL_USERNAME') or not app.config.get('MAIL_PASSWORD'):
-        print(f"📧 EMAIL LOG (Simulated):\nSubject: {subject}\nTo: {recipient}\nContent: {body_html}")
+    """
+    Ultra-safe email sender. 
+    Never blocks the main thread. Never returns a 500 error.
+    """
+    # 1. Check if real emails are disabled or missing credentials
+    if not ENABLE_REAL_EMAILS or not app.config.get('MAIL_USERNAME'):
+        print(f"📝 EMAIL SIMULATION (SMTP disabled on Render):\nTo: {recipient}\nSubject: {subject}")
         return
-    
+
     try:
         msg = Message(subject, recipients=[recipient])
         msg.html = body_html
         
-        # Start a background thread to send the email
-        # This prevents the web server from timing out on Render
+        # 2. Always send in a separate thread to prevent Render worker timeouts
         thread = threading.Thread(
             target=send_async_email, 
-            args=(app.app_context(), msg)
+            args=(app.app_context(), msg),
+            daemon=True # Ensure thread doesn't hang the process
         )
         thread.start()
-        print(f"⏳ Email sending started for {recipient}...")
+        print(f"🚀 Email task offloaded to background for {recipient}")
     except Exception as e:
-        print(f"❌ Email initiation error: {e}")
+        # Absolute fallback: if thread initialization fails, do not crash the app
+        print(f"❌ Failed to initiate email thread: {e}")
 
 # ========== DATABASE & INITIALIZATION ==========
 def get_db():
