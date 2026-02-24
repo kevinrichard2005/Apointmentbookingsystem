@@ -8,11 +8,14 @@ import random
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from flask_mail import Mail, Message
+import threading
 
 app = Flask(__name__, static_folder="static", template_folder=".")
 
+# Detect base directory for PythonAnywhere/Production paths
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+DB_NAME = os.path.join(BASE_DIR, "database.db")
 app.secret_key = os.environ.get("SECRET_KEY", "super_secret_key_development_only")
-DB_NAME = "database.db"
 
 # ========== EMAIL CONFIGURATION ==========
 app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
@@ -24,18 +27,35 @@ app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', 'MediB
 
 mail = Mail(app)
 
+def send_async_email(app_context, msg):
+    """Internal helper to send email in a separate thread"""
+    with app_context:
+        try:
+            mail.send(msg)
+            print(f"✅ Email sent successfully")
+        except Exception as e:
+            print(f"❌ Email background error: {e}")
+
 def send_email(subject, recipient, body_html):
-    """Helper to send email with fallback to console logging"""
-    if not app.config['MAIL_USERNAME'] or not app.config['MAIL_PASSWORD']:
-        print(f"📧 EMAIL LOG (Simulated):\nSubject: {subject}\nTo: {recipient}\nContent: {body_html}\n(Configure MAIL_USERNAME/PASSWORD to send real emails)")
+    """Helper to send email asynchronously without blocking the main request"""
+    if not app.config.get('MAIL_USERNAME') or not app.config.get('MAIL_PASSWORD'):
+        print(f"📧 EMAIL LOG (Simulated):\nSubject: {subject}\nTo: {recipient}\nContent: {body_html}")
         return
+    
     try:
         msg = Message(subject, recipients=[recipient])
         msg.html = body_html
-        mail.send(msg)
-        print(f"✅ Email sent to {recipient}")
+        
+        # Start a background thread to send the email
+        # This prevents the web server from timing out on Render
+        thread = threading.Thread(
+            target=send_async_email, 
+            args=(app.app_context(), msg)
+        )
+        thread.start()
+        print(f"⏳ Email sending started for {recipient}...")
     except Exception as e:
-        print(f"❌ Email error: {e}")
+        print(f"❌ Email initiation error: {e}")
 
 # ========== DATABASE & INITIALIZATION ==========
 def get_db():
@@ -527,36 +547,45 @@ def book_appointment(doctor_id):
             """, (session["user_id"], doctor_id, date, time, "Pending"))
             conn.commit()
             
-            # Send Booking Confirmation Email
-            user_email = conn.execute("SELECT email FROM users WHERE id=?", (session["user_id"],)).fetchone()["email"]
-            send_email(
-                "Appointment Requested! 📅",
-                user_email,
-                f"""
-                <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 12px;">
-                    <h2 style="color: #4f46e5;">Booking Request Received</h2>
-                    <p>Hello {session['name']},</p>
-                    <p>Your appointment request has been successfully submitted. Here are the details:</p>
-                    <div style="background: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                        <p style="margin: 5px 0;"><b>Doctor:</b> Dr. {doctor['name']}</p>
-                        <p style="margin: 5px 0;"><b>Date:</b> {date}</p>
-                        <p style="margin: 5px 0;"><b>Time:</b> {time}</p>
-                        <p style="margin: 5px 0;"><b>Status:</b> <span style="color: #eab308; font-weight: bold;">PENDING</span></p>
-                    </div>
-                </div>
-                """
-            )
+            # Fetch user email for notification
+            user_data = conn.execute("SELECT email, name FROM users WHERE id=?", (session["user_id"],)).fetchone()
             
+            if user_data:
+                # Wrap email in a try/except so email issues NEVER crash the booking
+                try:
+                    send_email(
+                        "Appointment Requested! 📅",
+                        user_data["email"],
+                        f"""
+                        <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 12px;">
+                            <h2 style="color: #4f46e5;">Booking Request Received</h2>
+                            <p>Hello {user_data['name']},</p>
+                            <p>Your appointment request has been successfully submitted. Here are the details:</p>
+                            <div style="background: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                                <p style="margin: 5px 0;"><b>Doctor:</b> {doctor['name']}</p>
+                                <p style="margin: 5px 0;"><b>Date:</b> {date}</p>
+                                <p style="margin: 5px 0;"><b>Time:</b> {time}</p>
+                                <p style="margin: 5px 0;"><b>Status:</b> <span style="color: #eab308; font-weight: bold;">PENDING</span></p>
+                            </div>
+                        </div>
+                        """
+                    )
+                except Exception as email_err:
+                    print(f"⚠️ Email could not be initiated: {email_err}")
+
             flash("✅ Appointment booked successfully!", "success")
             
         except sqlite3.IntegrityError as e:
-            # This catches the unique constraint violation
             if "unique_doctor_time_slot" in str(e):
                 flash("❌ This time slot was just booked by someone else. Please choose another time.", "danger")
             else:
-                flash("❌ An error occurred. Please try again.", "danger")
-        
-        conn.close()
+                flash("❌ An error occurred with the database. Please try again.", "danger")
+        except Exception as e:
+            print(f"❌ Critical Booking Error: {e}")
+            flash("❌ A system error occurred. Your booking might not have been saved.", "danger")
+        finally:
+            conn.close()
+            
         return redirect("/dashboard")
 
     # GET request - show booking form
