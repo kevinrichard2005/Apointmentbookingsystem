@@ -274,7 +274,7 @@ def ai_response(user_message, user_id=None):
         return "🕒 <b>Clinic Hours:</b><br>• Mon-Fri: 9AM - 7PM<br>• Sat: 10AM - 4PM<br>• Sun: Emergency Only<br><br><b>Location:</b><br>123 Medical St, Health City"
 
     if any(k in message_lower for k in ["contact", "phone", "email", "support"]):
-        return "📞 <b>Contact Support:</b><br>Phone: +1 555-123-4567<br>Email: support@medibook.com<br><br><a href='/contact' class='btn' style='width:100%; text-align:center; padding:8px; border:1px solid var(--card-border); display:inline-block;'>Open Contact Form</a>"
+        return "📞 <b>Contact Support:</b><br>Phone: +1 555-123-4567<br>Email: <a href='mailto:medibook36@gmail.com' style='color:var(--primary);'>medibook36@gmail.com</a><br><br><a href='/contact' class='btn' style='width:100%; text-align:center; padding:8px; border:1px solid var(--card-border); display:inline-block;'>Open Contact Form</a>"
 
     if any(k in message_lower for k in ["location", "address", "where"]):
         return "📍 <b>Clinic Location:</b><br>123 Medical Street, Health City, Metro State.<br><br><i>Valet parking is available for all patients.</i>"
@@ -350,9 +350,36 @@ def about():
     return render_template("about.html")
 
 
-@app.route("/contact")
+@app.route("/contact", methods=["GET", "POST"])
 def contact():
     """Contact page route"""
+    if request.method == "POST":
+        name = request.form.get("name")
+        email = request.form.get("email")
+        message = request.form.get("message")
+        
+        if not name or not email or not message:
+            flash("❌ Please fill out all fields.", "danger")
+            return redirect("/contact")
+            
+        # Send notification email to the admin/support
+        send_email(
+            f"New Contact Message from {name}",
+            app.config['MAIL_USERNAME'],
+            f"""
+            <h2>New Contact Inquiry</h2>
+            <p><b>Name:</b> {name}</p>
+            <p><b>Email:</b> {email}</p>
+            <p><b>Message:</b></p>
+            <div style="background: #f4f4f4; padding: 15px; border-radius: 8px;">
+                {message}
+            </div>
+            """
+        )
+        
+        flash("✅ Your message has been sent successfully!", "success")
+        return redirect("/contact")
+        
     return render_template("contact.html")
 
 
