@@ -18,9 +18,9 @@ DB_NAME = os.path.join(BASE_DIR, "database.db")
 app.secret_key = os.environ.get("SECRET_KEY", "super_secret_key_development_only")
 
 # ========== SYSTEM ENVIRONMENT CHECKS ==========
-def is_production():
-    """Detect if the application is running in a production environment (Render or Vercel)"""
-    return os.environ.get('RENDER') == 'true' or os.environ.get('VERCEL') == '1'
+def is_render():
+    """Detect if the application is running on Render production"""
+    return os.environ.get('RENDER') == 'true'
 
 # ========== EMAIL CONFIGURATION (SAFE FALLBACK) ==========
 # Prioritize environment variables for production security
@@ -31,10 +31,10 @@ app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME') or 'medibook36@gma
 app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD') or 'iqxq xdaq swbm dzcc'
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', 'MediBook Alerts <noreply@medibook.com>')
 
-# Feature flag: Email sending is disabled on production by default to prevent timeouts
-# unless you set ENABLE_EMAILS=true in environment variables
+# Feature flag: Email sending is disabled on Render by default to prevent timeouts
+# unless you set ENABLE_EMAILS=true in Render environment variables
 ENABLE_REAL_EMAILS = True
-if is_production() and os.environ.get('ENABLE_EMAILS') != 'true':
+if is_render() and os.environ.get('ENABLE_EMAILS') != 'true':
     ENABLE_REAL_EMAILS = False
 
 mail = Mail(app)
@@ -84,14 +84,13 @@ def get_db():
 
 def setup_static_files():
     """Ensure style.css is in the static folder for production"""
-    try:
-        if not os.path.exists("static"):
-            os.makedirs("static")
-        if os.path.exists("style.css"):
-            # Sync style.css to static/style.css
-            shutil.copy("style.css", "static/style.css")
-    except Exception as e:
-        print(f"⚠️ Filesystem is read-only or setup_static_files failed: {e}")
+    if not os.path.exists("static"):
+        os.makedirs("static")
+    if os.path.exists("style.css") and not os.path.exists("static/style.css"):
+        shutil.copy("style.css", "static/style.css")
+    elif os.path.exists("style.css"):
+        # Always sync for local development updates
+        shutil.copy("style.css", "static/style.css")
 
 def init_db():
     conn = get_db()
@@ -182,10 +181,7 @@ def init_db():
             """, doctor)
         print("✅ 7 sample doctors added to database!")
 
-    try:
-        conn.commit()
-    except Exception as e:
-        print(f"⚠️ Could not commit to database (likely read-only): {e}")
+    conn.commit()
     conn.close()
 
 
@@ -1012,26 +1008,9 @@ def export_appointments():
     )
 
 
-# Initialize files and DB on startup (safely wrapped for serverless)
-try:
-    if not is_production():
-        setup_static_files()
-        init_db()
-    else:
-        # In production, we might still want to call them but handle errors
-        # Many serverless platforms run build scripts where these SHOULD run
-        # but at runtime they might fail.
-        print("🌐 Running in production mode")
-        # setup_static_files() # Risk of crash on Vercel runtime
-        # init_db()           # Risk of crash on Vercel runtime
-except Exception as e:
-    print(f"❌ Startup initialization failed: {e}")
-
-# Vercel needs the 'app' object to be available at the module level
-# which it already is.
+# Initialize files and DB on startup (required for Gunicorn/Production)
+setup_static_files()
+init_db()
 
 if __name__ == "__main__":
-    # Local development initialization
-    setup_static_files()
-    init_db()
     app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
