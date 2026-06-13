@@ -1,75 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{{ title if title else "MediBook - Appointment Booking" }}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  <!-- Backup CSS link -->
-  <link rel="stylesheet" href="/style.css" onerror="console.log('Static CSS failed, using backup')">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🩺</text></svg>">
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🩺</text></svg>">
   <style>
-    /* Chatbot specific styles */
-    .chat-message {
-      margin-bottom: 15px;
-      display: flex;
-      flex-direction: column;
-    }
-    
-    .chat-message.user {
-      align-items: flex-end;
-    }
-    
-    .chat-message.ai {
-      align-items: flex-start;
-    }
-    
-    .message-bubble {
-      padding: 12px 16px;
-      border-radius: 18px;
-      max-width: 80%;
-      word-wrap: break-word;
-      white-space: pre-line;
-      line-height: 1.5;
-    }
-    
-    .chat-message.user .message-bubble {
-      background: linear-gradient(90deg, var(--primary), var(--primary2));
-      color: white;
-      border-bottom-right-radius: 4px;
-    }
-    
-    .chat-message.ai .message-bubble {
-      background: rgba(255,255,255,.08);
-      border: 1px solid var(--border);
-      border-bottom-left-radius: 4px;
-    }
-    
-    .message-time {
-      font-size: 0.75rem;
-      color: var(--muted);
-      margin-top: 4px;
-    }
-    
-    .suggestion-chip {
-      padding: 8px 12px;
-      background: rgba(79,70,229,.15);
-      border: 1px solid rgba(79,70,229,.3);
-      border-radius: 20px;
-      font-size: 0.85rem;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    
-    .suggestion-chip:hover {
-      background: rgba(79,70,229,.25);
-      transform: translateY(-2px);
+    @media (max-width: 768px) {
+      .desktop-only {
+        display: none !important;
+      }
     }
   </style>
 </head>
+
 <body>
   <div class="container">
-    <!-- Enhanced Navbar -->
     <div class="nav">
       <div class="brand">
         <span style="margin-right: 5px;">🩺</span>Medi<span>Book</span>
@@ -83,165 +32,72 @@
       </button>
 
       <div class="nav-links" id="navLinks">
-        <!-- Main Navigation -->
         <a class="btn" href="/">🏠 Home</a>
         <a class="btn" href="/doctors">👨‍⚕️ Doctors</a>
         <a class="btn" href="/about">ℹ️ About</a>
         <a class="btn" href="/contact">📞 Contact</a>
-        <!-- AI Chatbot Link -->
         <a class="btn" href="/chatbot">🤖 AI Assistant</a>
-        
-        <!-- User/Auth Navigation -->
+
         {% if session.get("user_id") %}
-          {% if session.get("role") == "admin" %}
-            <a class="btn btn-primary" href="/admin">⚙️ Admin</a>
-          {% else %}
-            <a class="btn btn-primary" href="/dashboard">📊 Dashboard</a>
-          {% endif %}
-          <a class="btn" href="/logout">🚪 Logout</a>
+        {% if session.get("role") == "admin" %}
+        <a class="btn btn-primary" href="/admin">⚙️ Admin</a>
         {% else %}
-          <a class="btn" href="/login">🔑 Login</a>
-          <a class="btn btn-primary" href="/register">📝 Register</a>
+        <a class="btn btn-primary" href="/dashboard">📊 Dashboard</a>
+        {% endif %}
+        <a class="btn" href="/logout">🚪 Logout</a>
+        {% else %}
+        <a class="btn" href="/login">🔑 Login</a>
+        <a class="btn btn-primary" href="/register">📝 Register</a>
         {% endif %}
       </div>
     </div>
 
     <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="flash {{ category }}">
-            {{ message }}
-          </div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
-
-    {% if booked_slots %}
-    <div class="flash warn" style="border-color: rgba(234,179,8,.4); background: rgba(234,179,8,.1);">
-      <strong>⚠️ Note:</strong> Some doctors have booked slots for today. Check availability before booking.
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="flash {{ category }}">
+      {{ message }}
     </div>
+    {% endfor %}
     {% endif %}
+    {% endwith %}
 
     <!-- Main Content -->
     {% block content %}{% endblock %}
 
-    <!-- Simple Footer -->
-    <footer style="margin-top: 50px; padding: 20px 0; text-align: center; border-top: 1px solid var(--border); color: var(--muted);">
+    <footer
+      style="margin-top: 50px; padding: 20px 0; text-align: center; border-top: 1px solid var(--border); color: var(--muted);">
       <p>© 2024 MediBook - Appointment Booking System</p>
-      <p style="margin-top: 10px; font-size: 0.9rem;">
-        <a href="/about" style="color: var(--muted); margin-right: 15px;">About</a>
-        <a href="/contact" style="color: var(--muted); margin-right: 15px;">Contact</a>
-        <a href="/doctors" style="color: var(--muted); margin-right: 15px;">Doctors</a>
-        <a href="/chatbot" style="color: var(--muted);">AI Assistant</a>
-      </p>
     </footer>
   </div>
 
-  <!-- Floating Chatbot Button -->
-  <div id="floating-chatbot" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000;">
-    <button onclick="location.href='/chatbot'" style="width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--primary2)); border: none; color: white; font-size: 24px; cursor: pointer; box-shadow: 0 4px 20px rgba(79,70,229,0.4); display: flex; align-items: center; justify-content: center; transition: all 0.3s ease;">
-      🤖
-    </button>
-    <div style="position: absolute; bottom: 70px; right: 0; background: var(--card); padding: 10px 15px; border-radius: 10px; border: 1px solid var(--border); box-shadow: var(--shadow); display: none;" id="chatbot-tooltip">
-      <p style="margin: 0; font-size: 0.9rem;">Need help? Ask our AI Assistant!</p>
-    </div>
-  </div>
-
-  <!-- Mobile Menu JavaScript -->
   <script>
+    // Scroll restoration: save scroll position before unload
+    window.addEventListener('beforeunload', () => {
+      localStorage.setItem('scrollPosition', window.scrollY);
+    });
+
+    // Restore scroll position on load
+    window.addEventListener('load', () => {
+      const scrollPos = localStorage.getItem('scrollPosition');
+      if (scrollPos) {
+        window.scrollTo(0, parseInt(scrollPos));
+        localStorage.removeItem('scrollPosition');
+      }
+    });
+
     // Mobile menu toggle
     const menuToggle = document.getElementById('menuToggle');
     const navLinks = document.getElementById('navLinks');
-    
+
     if (menuToggle && navLinks) {
       menuToggle.addEventListener('click', () => {
         navLinks.classList.toggle('active');
         menuToggle.classList.toggle('active');
       });
-      
-      // Close menu when clicking outside on mobile
-      document.addEventListener('click', (event) => {
-        if (window.innerWidth <= 768) {
-          if (!navLinks.contains(event.target) && !menuToggle.contains(event.target)) {
-            navLinks.classList.remove('active');
-            menuToggle.classList.remove('active');
-          }
-        }
-      });
-      
-      // Close menu when clicking a link
-      document.querySelectorAll('.nav-links a').forEach(link => {
-        link.addEventListener('click', () => {
-          if (window.innerWidth <= 768) {
-            navLinks.classList.remove('active');
-            menuToggle.classList.remove('active');
-          }
-        });
-      });
     }
-    
-    // Floating chatbot tooltip
-    const floatingBtn = document.getElementById('floating-chatbot');
-    const tooltip = document.getElementById('chatbot-tooltip');
-    
-    if (floatingBtn && tooltip) {
-      floatingBtn.addEventListener('mouseenter', () => {
-        tooltip.style.display = 'block';
-      });
-      
-      floatingBtn.addEventListener('mouseleave', () => {
-        tooltip.style.display = 'none';
-      });
-      
-      // Touch support for mobile
-      floatingBtn.addEventListener('touchstart', () => {
-        tooltip.style.display = 'block';
-        setTimeout(() => {
-          tooltip.style.display = 'none';
-        }, 3000);
-      });
-    }
-    
-    // Smooth scrolling for anchor links
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-      anchor.addEventListener('click', function(e) {
-        e.preventDefault();
-        const targetId = this.getAttribute('href');
-        if(targetId !== '#') {
-          const targetElement = document.querySelector(targetId);
-          if(targetElement) {
-            window.scrollTo({
-              top: targetElement.offsetTop - 80,
-              behavior: 'smooth'
-            });
-          }
-        }
-      });
-    });
-    
-    // Prevent form resubmission on refresh
-    if (window.history.replaceState) {
-      window.history.replaceState(null, null, window.location.href);
-    }
-    
-    // Add loading state to buttons
-    document.querySelectorAll('form').forEach(form => {
-      form.addEventListener('submit', function() {
-        const submitBtn = this.querySelector('button[type="submit"]');
-        if (submitBtn) {
-          const originalText = submitBtn.innerHTML;
-          submitBtn.innerHTML = 'Processing...';
-          submitBtn.disabled = true;
-          
-          // Revert after 5 seconds (safety)
-          setTimeout(() => {
-            submitBtn.innerHTML = originalText;
-            submitBtn.disabled = false;
-          }, 5000);
-        }
-      });
-    });
   </script>
 </body>
+
 </html>
