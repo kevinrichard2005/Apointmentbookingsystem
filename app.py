@@ -1,96 +1,73 @@
-from flask import Flask, render_template, request, redirect, session, url_for, flash, send_from_directory, jsonify, Response
-import csv
-import io
+from flask import Flask, render_template, request, redirect, session, url_for, flash, send_from_directory, jsonify
 import sqlite3
 import os
-import shutil
 import random
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
-from flask_mail import Mail, Message
-import threading
 
 app = Flask(__name__, static_folder="static", template_folder=".")
 
-# ========== PROJECT CONFIGURATION ==========
-BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-DB_NAME = os.path.join(BASE_DIR, "database.db")
 app.secret_key = os.environ.get("SECRET_KEY", "super_secret_key_development_only")
+DB_NAME = "database.db"
 
-# ========== SYSTEM ENVIRONMENT CHECKS ==========
-def is_render():
-    """Detect if the application is running on Render production"""
-    return os.environ.get('RENDER') == 'true'
+# ========== FIX FOR STATIC FILES ==========
+import shutil
 
-# ========== EMAIL CONFIGURATION (SAFE FALLBACK) ==========
-# Prioritize environment variables for production security
-app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
-app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
-app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'True') == 'True'
-app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME') or 'medibook36@gmail.com'
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD') or 'iqxq xdaq swbm dzcc'
-app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', 'MediBook Alerts <noreply@medibook.com>')
+def setup_static_files():
+    """Ensure static files are set up properly"""
+    if not os.path.exists("static"):
+        os.makedirs("static")
+        print("✅ Created static folder")
+    
+    if os.path.exists("style.css") and not os.path.exists("static/style.css"):
+        shutil.copy("style.css", "static/style.css")
+        print("✅ Copied style.css to static folder")
+    
+    if os.path.exists("static/style.css"):
+        print("✅ style.css exists in static folder")
+    
+    if os.path.exists("style.css"):
+        print("✅ style.css exists in root folder")
 
-# Feature flag: Email sending is disabled on Render by default to prevent timeouts
-# unless you set ENABLE_EMAILS=true in Render environment variables
-ENABLE_REAL_EMAILS = True
-if is_render() and os.environ.get('ENABLE_EMAILS') != 'true':
-    ENABLE_REAL_EMAILS = False
+@app.route('/style.css')
+def serve_css():
+    """Serve CSS from either static folder or root"""
+    if os.path.exists('static/style.css'):
+        return send_from_directory('static', 'style.css')
+    elif os.path.exists('style.css'):
+        return send_from_directory('.', 'style.css')
+    else:
+        return "/* Basic CSS */ body { background: #0b1220; color: white; }", 200, {'Content-Type': 'text/css'}
 
-mail = Mail(app)
+@app.route('/debug-files')
+def debug_files():
+    """Debug endpoint to see file structure"""
+    result = []
+    result.append(f"<h3>Current Directory: {os.getcwd()}</h3>")
+    
+    result.append("<h4>Files in root:</h4>")
+    for item in os.listdir('.'):
+        if os.path.isdir(item):
+            result.append(f"📁 {item}/")
+            if item == 'static':
+                if os.path.exists('static'):
+                    result.append("Contents of static/:")
+                    for subitem in os.listdir('static'):
+                        result.append(f"  - {subitem}")
+        else:
+            result.append(f"📄 {item}")
+    
+    return "<br>".join(result)
 
-def send_async_email(app_context, msg):
-    """Background thread to handle SMTP connection without slowing down the UI"""
-    with app_context:
-        try:
-            # Set a timeout for the SMTP connection
-            mail.send(msg)
-            print("✅ Background email sent successfully")
-        except Exception as e:
-            # Silently log errors to prevent 500 crashes
-            print(f"📧 SMTP background issue (ignored): {e}")
+@app.route('/static/<path:filename>')
+def static_files(filename):
+    return send_from_directory('static', filename)
+# ========== END FIX ==========
 
-def send_email(subject, recipient, body_html):
-    """
-    Ultra-safe email sender. 
-    Never blocks the main thread. Never returns a 500 error.
-    """
-    # 1. Check if real emails are disabled or missing credentials
-    if not ENABLE_REAL_EMAILS or not app.config.get('MAIL_USERNAME'):
-        print(f"📝 EMAIL SIMULATION (SMTP disabled on Render):\nTo: {recipient}\nSubject: {subject}")
-        return
-
-    try:
-        msg = Message(subject, recipients=[recipient])
-        msg.html = body_html
-        
-        # 2. Always send in a separate thread to prevent Render worker timeouts
-        thread = threading.Thread(
-            target=send_async_email, 
-            args=(app.app_context(), msg),
-            daemon=True # Ensure thread doesn't hang the process
-        )
-        thread.start()
-        print(f"🚀 Email task offloaded to background for {recipient}")
-    except Exception as e:
-        # Absolute fallback: if thread initialization fails, do not crash the app
-        print(f"❌ Failed to initiate email thread: {e}")
-
-# ========== DATABASE & INITIALIZATION ==========
 def get_db():
     conn = sqlite3.connect(DB_NAME)
     conn.row_factory = sqlite3.Row
     return conn
-
-def setup_static_files():
-    """Ensure style.css is in the static folder for production"""
-    if not os.path.exists("static"):
-        os.makedirs("static")
-    if os.path.exists("style.css") and not os.path.exists("static/style.css"):
-        shutil.copy("style.css", "static/style.css")
-    elif os.path.exists("style.css"):
-        # Always sync for local development updates
-        shutil.copy("style.css", "static/style.css")
 
 def init_db():
     conn = get_db()
@@ -187,119 +164,259 @@ def init_db():
 
 # -------------------- AI CHATBOT FUNCTIONS (YOUR ORIGINAL BUT ENHANCED) --------------------
 def ai_response(user_message, user_id=None):
-    """Generate smart healthcare responses based on message keywords and DB state"""
+    """Generate AI response based on user message - ENHANCED VERSION"""
     message_lower = user_message.lower().strip()
     
-    # ========== EMERGENCY CHECK ==========
-    emergency_keywords = ["emergency", "911", "chest pain", "bleeding", "stroke", "accident", "suicide", "dying"]
+    # ========== EMERGENCY CHECK (PRIORITY) ==========
+    emergency_keywords = ["emergency", "urgent", "immediate help", "critical", 
+                         "heart attack", "stroke", "bleeding", "unconscious", 
+                         "chest pain", "can't breathe", "severe pain", "dying",
+                         "911", "ambulance", "hospital now"]
+    
     for keyword in emergency_keywords:
         if keyword in message_lower:
-            return "🚨 <b style='color:var(--danger);'>EMERGENCY NOTICE</b> 🚨<br><br>If this is a medical emergency, please:<br><br>1. <b>CALL 911 IMMEDIATELY</b><br>2. Go to the nearest emergency room<br>3. Do NOT wait for online assistance<br><br><a href='tel:911' class='btn' style='background:var(--danger); color:white; width:100%; text-align:center; padding:12px; border-radius:10px; display:inline-block; font-weight:700;'>📞 CALL 911 NOW</a>"
+            return "🚨 **EMERGENCY NOTICE** 🚨\n\nIf this is a medical emergency, please:\n\n1. **CALL YOUR LOCAL EMERGENCY NUMBER IMMEDIATELY**\n2. Go to the nearest emergency room\n3. Do NOT wait for online assistance\n\n**Emergency Numbers:**\n• USA/Canada: 911\n• UK: 999\n• Australia: 000\n• EU: 112\n\nThis chatbot is for appointment booking only and cannot handle emergencies."
 
-    # ========== GREETINGS & THANKS ==========
-    if any(k in message_lower for k in ["hello", "hi", "hey", "greetings"]):
-        return "👋 <b>Hello! I'm MediBook AI.</b><br>I'm here to help you book appointments, find doctors, and answer health queries.<br><br><b>How can I assist you today?</b>"
-    
-    if any(k in message_lower for k in ["thank", "thanks", "helpful"]):
-        return "You're very welcome! I'm glad I could help. Is there anything else you need assistance with? 😊"
+    # ========== GREETINGS ==========
+    greetings = ["hello", "hi", "hey", "good morning", "good afternoon", "good evening", "greetings"]
+    for greeting in greetings:
+        if greeting in message_lower:
+            responses = [
+                "Hello! I'm MediBook AI Assistant. How can I help you with your healthcare needs today?",
+                "Hi there! Welcome to MediBook. How can I assist you with appointments or medical queries?",
+                "Hello! I'm here to help you book appointments, find doctors, or answer medical questions."
+            ]
+            return random.choice(responses)
+
+    # ========== THANKS ==========
+    thanks = ["thank you", "thanks", "appreciate", "helpful", "thank"]
+    for thank in thanks:
+        if thank in message_lower:
+            responses = [
+                "You're welcome! I'm glad I could help. Don't hesitate to ask if you need anything else.",
+                "Happy to help! Remember, I'm here 24/7 to assist with your healthcare needs.",
+                "My pleasure! Let me know if you have any other questions about appointments or healthcare."
+            ]
+            return random.choice(responses)
 
     # ========== APPOINTMENT BOOKING ==========
-    if any(k in message_lower for k in ["how to book", "book an appointment", "booking", "schedule"]):
-        return "📅 <b>To book an appointment:</b><br>1. Go to the <b>'Doctors'</b> page.<br>2. Choose your preferred specialist.<br>3. Select an available date and time slot.<br>4. Click 'Confirm Booking'.<br><br><a href='/doctors' class='btn btn-primary' style='width:100%; text-align:center; padding:10px; display:inline-block;'>🔍 Browse Doctors & Book</a>"
-
-    if any(k in message_lower for k in ["cancel", "how to cancel", "remove booking"]):
-        return "❌ <b>To cancel an appointment:</b><br>1. Log in to your account.<br>2. Navigate to your <b>'Dashboard'</b>.<br>3. Find the appointment you wish to cancel.<br>4. Click the 'Cancel' button next to it.<br><br><a href='/dashboard' class='btn btn-primary' style='width:100%; text-align:center; padding:10px; display:inline-block;'>📊 Go to Dashboard</a>"
-
-    if any(k in message_lower for k in ["book", "appointment", "schedule"]):
-        try:
+    appointment_keywords = ["book appointment", "schedule appointment", "make appointment", 
+                          "see doctor", "want to book", "need appointment", "book a visit",
+                          "make booking", "schedule visit", "book doctor"]
+    
+    for keyword in appointment_keywords:
+        if keyword in message_lower:
             conn = get_db()
-            count = conn.execute("SELECT COUNT(*) as count FROM doctors").fetchone()["count"]
+            doctors_count = conn.execute("SELECT COUNT(*) as count FROM doctors").fetchone()["count"]
             conn.close()
-        except:
-            count = "several"
-        return f"📅 <b>Ready to book?</b><br>We have {count} specialists available for you.<br><br><a href='/doctors' class='btn btn-primary' style='width:100%; text-align:center; padding:10px; border-radius:12px; display:inline-block;'>🔍 Browse Doctors & Book</a>"
+            
+            responses = [
+                f"I can help you book an appointment! We have {doctors_count} verified doctors available.\n\n**Steps to book:**\n1. Go to 'Doctors' page to browse available doctors\n2. Click 'Book Now' on any doctor's card\n3. Select your preferred date and time\n4. Confirm booking\n\nYou'll receive instant confirmation!",
+                f"To book an appointment:\n1. Visit the 'Doctors' section\n2. Choose from {doctors_count} specialists\n3. Select date and time\n4. Get confirmation\n\nWhat type of specialist are you looking for? I can help you find the right doctor."
+            ]
+            return random.choice(responses)
 
-    # ========== DOCTOR SEARCH & SPECIALTIES ==========
-    specialties_list = {
-        "heart": "Cardiologist", "chest": "Cardiologist",
-        "tooth": "Dentist", "teeth": "Dentist", "dental": "Dentist",
-        "child": "Pediatrician", "kid": "Pediatrician",
-        "bone": "Orthopedic", "joint": "Orthopedic",
-        "skin": "Dermatologist", "rash": "Dermatologist",
-        "eye": "Ophthalmologist", "vision": "Ophthalmologist",
-        "ear": "ENT Specialist", "nose": "ENT Specialist", "throat": "ENT Specialist",
-        "stomach": "Gastroenterologist", "digestion": "Gastroenterologist"
-    }
+    # ========== DOCTOR SEARCH ==========
+    doctor_keywords = ["find doctor", "search doctor", "available doctors", "specialists", 
+                      "which doctors", "looking for doctor", "need doctor", "doctor available"]
+    
+    for keyword in doctor_keywords:
+        if keyword in message_lower:
+            conn = get_db()
+            doctors = conn.execute("SELECT specialization, COUNT(*) as count FROM doctors GROUP BY specialization").fetchall()
+            conn.close()
+            
+            specialties = ", ".join([f"{doc['specialization']} ({doc['count']})" for doc in doctors])
+            
+            return f"**Available Specialists:**\n\n{specialties}\n\n**How to find a doctor:**\n1. Visit 'Doctors' page\n2. Browse by specialization\n3. Check availability and timings\n4. Click 'Book Now' to schedule\n\nWhich specialty are you interested in?"
 
-    for key, spec in specialties_list.items():
-        if key in message_lower:
-            try:
+    # ========== CANCELLATION ==========
+    cancel_keywords = ["cancel appointment", "reschedule", "change appointment", "cancel booking",
+                      "postpone", "cancel my", "need to cancel", "want to cancel"]
+    
+    for keyword in cancel_keywords:
+        if keyword in message_lower:
+            if user_id:
                 conn = get_db()
-                docs = conn.execute("SELECT id, name FROM doctors WHERE specialization LIKE ? LIMIT 2", (f"%{spec.split()[0]}%",)).fetchall()
+                pending_appointments = conn.execute("""
+                    SELECT COUNT(*) as count FROM appointments 
+                    WHERE user_id = ? AND status IN ('Pending', 'Approved')
+                """, (user_id,)).fetchone()["count"]
                 conn.close()
-            except:
-                docs = []
+                
+                if pending_appointments > 0:
+                    return f"**Cancellation Process:**\n\nYou have {pending_appointments} appointment(s) that can be cancelled.\n\n**Steps:**\n1. Go to your Dashboard\n2. Find the appointment in the table\n3. Click 'Cancel' button\n4. Confirm cancellation\n\n**Note:** You can only cancel appointments with 'Pending' or 'Approved' status."
             
-            resp = f"🏥 <b>Recommended Specialty: {spec}</b><br>Based on your query, here are some top specialists:<br>"
-            if docs:
-                for d in docs:
-                    resp += f"<div style='background:rgba(255,255,255,0.05); padding:10px; border-radius:12px; margin:10px 0; border:1px solid var(--card-border);'><b>Dr. {d['name']}</b><br><a href='/book/{d['id']}' style='color:var(--primary); font-size:0.85rem; font-weight:600; text-decoration:none;'>📅 Book Dr. {d['name']} →</a></div>"
-            else:
-                resp += f"<br><a href='/doctors' class='btn btn-primary' style='width:100%; text-align:center; padding:8px; display:inline-block;'>🔍 Search for {spec}</a>"
-            return resp
+            return "**To cancel or reschedule:**\n1. Go to your Dashboard\n2. Find the appointment\n3. Click 'Cancel' (if status is Pending/Approved)\n4. For rescheduling: Cancel first, then book new slot\n\nVisit your Dashboard to manage appointments."
 
-    # ========== MY APPOINTMENTS ==========
-    if any(k in message_lower for k in ["my appointment", "my booking", "status"]):
-        if not user_id:
-            return "🔑 <b>Please log in</b> to view your appointments.<br><br><a href='/login' class='btn btn-primary' style='width:100%; text-align:center; padding:8px; display:inline-block;'>Login to MediBook</a>"
-        
-        try:
+    # ========== APPOINTMENT STATUS ==========
+    status_keywords = ["my appointment", "appointment status", "my bookings", "check appointment",
+                      "status of", "when is my", "upcoming appointment"]
+    
+    for keyword in status_keywords:
+        if keyword in message_lower and user_id:
             conn = get_db()
-            apps = conn.execute("SELECT a.date, a.time, a.status, d.name FROM appointments a JOIN doctors d ON a.doctor_id = d.id WHERE a.user_id = ? ORDER BY a.date DESC LIMIT 3", (user_id,)).fetchall()
+            appointments = conn.execute("""
+                SELECT a.date, a.time, a.status, d.name 
+                FROM appointments a 
+                JOIN doctors d ON a.doctor_id = d.id 
+                WHERE a.user_id = ? 
+                ORDER BY a.date DESC LIMIT 5
+            """, (user_id,)).fetchall()
             conn.close()
             
-            if apps:
-                resp = "📂 <b>Your Recent Bookings:</b><br><br>"
-                for a in apps:
-                    clr = "#eab308" if a['status'] == 'Pending' else "#22c55e"
-                    resp += f"<div style='border-left:3px solid {clr}; padding-left:10px; margin-bottom:12px;'><b>{a['date']}</b> at {a['time']}<br>Dr. {a['name']} ({a['status']})</div>"
-                resp += "<a href='/dashboard' class='btn' style='width:100%; text-align:center; border:1px solid var(--card-border); padding:8px; border-radius:10px; display:inline-block;'>Go to Dashboard</a>"
-                return resp
-            return "You have no upcoming appointments. <a href='/doctors' style='color:var(--primary);'>Book one now?</a>"
-        except:
-            return "Could not retrieve appointments at this time. Please try checking your dashboard."
+            if appointments:
+                response = "**Your Recent Appointments:**\n\n"
+                for app in appointments:
+                    status_icon = "🟡" if app['status'] == 'Pending' else "🟢" if app['status'] == 'Approved' else "🔵" if app['status'] == 'Completed' else "🔴"
+                    response += f"{status_icon} **{app['date']} at {app['time']}**\nDr. {app['name']} - Status: **{app['status']}**\n\n"
+                response += "Visit your **Dashboard** for full details and management options."
+                return response
+            else:
+                return "You don't have any appointments yet. Would you like to book one? Visit the **'Doctors'** page to get started!"
 
-    # ========== CLINIC INFO ==========
-    if any(k in message_lower for k in ["hour", "open", "timing"]):
-        return "🕒 <b>Clinic Hours:</b><br>• Mon-Fri: 9AM - 7PM<br>• Sat: 10AM - 4PM<br>• Sun: Emergency Only<br><br><b>Location:</b><br>123 Medical St, Health City"
+    # ========== MEDICATION ==========
+    med_keywords = ["medicine", "prescription", "drug", "pharmacy", "meds", "pill", "tablet",
+                   "dosage", "side effects", "take medicine"]
+    
+    for keyword in med_keywords:
+        if keyword in message_lower:
+            return "**Medication Guidance:**\n\n⚠️ **Important:** I cannot prescribe medication or provide medical advice.\n\n**For medication queries:**\n1. Consult with your doctor during appointment\n2. Visit a licensed pharmacist\n3. Never self-medicate without professional advice\n\nI can help you book an appointment with a doctor who can assist with medication questions."
 
-    if any(k in message_lower for k in ["contact", "phone", "email", "support"]):
-        return "📞 <b>Contact Support:</b><br>Phone: +1 555-123-4567<br>Email: <a href='mailto:medibook36@gmail.com' style='color:var(--primary);'>medibook36@gmail.com</a><br><br><a href='/contact' class='btn' style='width:100%; text-align:center; padding:8px; border:1px solid var(--card-border); display:inline-block;'>Open Contact Form</a>"
+    # ========== SYMPTOMS ==========
+    symptom_keywords = ["fever", "headache", "cough", "pain", "fatigue", "rash", "cold", "flu",
+                       "nausea", "vomiting", "diarrhea", "dizziness", "back pain", "stomach pain",
+                       "sore throat", "allergy", "itchy", "swelling", "bleeding", "bruise"]
+    
+    for keyword in symptom_keywords:
+        if keyword in message_lower:
+            conn = get_db()
+            # Find relevant specialist based on symptom
+            specialist_map = {
+                "fever": "General Physician",
+                "headache": "General Physician or Neurologist",
+                "cough": "General Physician or Pulmonologist",
+                "pain": "General Physician",
+                "rash": "Dermatologist",
+                "cold": "General Physician",
+                "flu": "General Physician",
+                "nausea": "General Physician or Gastroenterologist",
+                "back pain": "Orthopedic Surgeon",
+                "stomach pain": "General Physician or Gastroenterologist",
+                "sore throat": "General Physician or ENT Specialist",
+                "allergy": "General Physician or Allergist"
+            }
+            
+            recommended_specialist = "General Physician"
+            for symptom, specialist in specialist_map.items():
+                if symptom in message_lower:
+                    recommended_specialist = specialist
+                    break
+            
+            doctors = conn.execute("""
+                SELECT name, specialization FROM doctors 
+                WHERE specialization LIKE ? 
+                LIMIT 3
+            """, (f"%{recommended_specialist.split()[0]}%",)).fetchall()
+            conn.close()
+            
+            response = "**Symptom Guidance:**\n\n"
+            response += "⚠️ **Disclaimer:** This is general information only, not medical advice.\n\n"
+            response += "**Recommendation:** Consult a healthcare professional for accurate diagnosis.\n\n"
+            
+            if doctors:
+                response += f"**Available {recommended_specialist}s:**\n"
+                for doc in doctors:
+                    response += f"• Dr. {doc['name']} ({doc['specialization']})\n"
+                response += "\nVisit **'Doctors'** page to book an appointment."
+            else:
+                response += f"Book an appointment with a **{recommended_specialist}** for proper evaluation."
+            
+            return response
 
-    if any(k in message_lower for k in ["location", "address", "where"]):
-        return "📍 <b>Clinic Location:</b><br>123 Medical Street, Health City, Metro State.<br><br><i>Valet parking is available for all patients.</i>"
+    # ========== CLINIC HOURS ==========
+    hour_keywords = ["clinic hours", "working hours", "open", "availability", "timing", 
+                    "when open", "close", "operating hours", "business hours"]
+    
+    for keyword in hour_keywords:
+        if keyword in message_lower:
+            return "**Clinic Hours:**\n\n• **Weekdays (Mon-Fri):** 9:00 AM - 7:00 PM\n• **Saturdays:** 10:00 AM - 4:00 PM\n• **Sundays:** Emergency services only\n• **Holidays:** Check with specific clinic\n\n**Note:** Individual doctor hours may vary. Check doctor profiles for specific availability."
 
-    if any(k in message_lower for k in ["fee", "price", "cost", "payment"]):
-        return "💰 <b>Service Fees:</b><br>• General Consultation: $50<br>• Specialist Consultation: $80<br>• Follow-up Visit: $30<br><br><i>We accept all major insurance providers and credit cards.</i>"
+    # ========== CONTACT INFO ==========
+    contact_keywords = ["contact", "phone", "email", "support", "help", "customer service",
+                       "reach", "get in touch", "address", "location", "where are you"]
+    
+    for keyword in contact_keywords:
+        if keyword in message_lower:
+            return "**Contact Information:**\n\n📧 **Email:** support@medibook.com\n📞 **Phone:** +1 (555) 123-4567\n📍 **Address:** 123 Medical Street, Health City\n⏰ **Support Hours:** Mon-Fri, 9AM-6PM\n\n**For Urgent Matters:**\n• Technical issues: tech@medibook.com\n• Billing: billing@medibook.com\n• Feedback: feedback@medibook.com"
 
-    if any(k in message_lower for k in ["reschedule", "change", "edit"]):
-        return "🔄 <b>Need to change your appointment?</b><br>You can easily reschedule from your dashboard or by calling us.<br><br><a href='/dashboard' class='btn btn-primary' style='width:100%; text-align:center; display:inline-block;'>Manage Appointments</a>"
+    # ========== PRICING ==========
+    price_keywords = ["price", "cost", "fee", "charge", "how much", "payment", "bill", 
+                     "insurance", "covered", "afford"]
+    
+    for keyword in price_keywords:
+        if keyword in message_lower:
+            return "**Pricing Information:**\n\n💰 **Consultation Fees:**\n• Vary by doctor and specialization\n• Typically range: $100 - $300\n• Exact fees shown when booking\n\n**Insurance:**\n• Most major insurances accepted\n• Check with specific doctor's clinic\n• Bring insurance card to appointment\n\n**Payment Methods:**\n• Credit/Debit Cards\n• Health Savings Accounts (HSA)\n• Cash (at clinic)\n• Insurance co-pays"
 
-    if any(k in message_lower for k in ["headache", "migrate", "pain"]):
-        return "🤕 <b>Headache Advice:</b><br>If you have a persistent headache, please rest in a dark room and stay hydrated. <br><br>💡 <b>Tip:</b> If the pain is severe or accompanied by blurred vision, please book a <b>General Physician</b> immediately."
+    # ========== LOCATION ==========
+    location_keywords = ["location", "where", "address", "directions", "map", "how to reach",
+                        "clinic location", "hospital location", "find clinic"]
+    
+    for keyword in location_keywords:
+        if keyword in message_lower:
+            return "**Location & Directions:**\n\n📍 **Main Clinic:**\n123 Medical Street\nHealth City, HC 10001\n\n**Branch Clinics:**\n1. Downtown Health Center: 456 Business Ave\n2. Northside Medical: 789 Park Road\n3. Westend Clinic: 321 Oak Street\n\n**Parking:** Available at all locations\n**Public Transport:** Bus routes 101, 205, 308\n**Accessibility:** Wheelchair accessible"
 
-    if any(k in message_lower for k in ["fever", "cough", "flu", "cold"]):
-        return "🤒 <b>Fever & Cough Advice:</b><br>Monitor your temperature and get plenty of rest. If your fever exceeds 102°F (39°C), or you have difficulty breathing, please consult a doctor.<br><br><a href='/doctors' class='btn btn-primary' style='width:100%; text-align:center; display:inline-block;'>Book a Consultation</a>"
+    # ========== DOCTOR-SPECIFIC QUERIES ==========
+    specialties = ["cardiologist", "dentist", "pediatrician", "orthopedic", "gynecologist", 
+                   "dermatologist", "psychiatrist", "ent", "ophthalmologist", "physician",
+                   "cardiology", "dental", "pediatrics", "orthopedics", "gynecology",
+                   "dermatology", "psychiatry", "eye", "general", "neurologist", 
+                   "gastroenterologist", "pulmonologist", "urologist", "allergist"]
+    
+    for specialty in specialties:
+        if specialty in message_lower:
+            conn = get_db()
+            doctors = conn.execute("""
+                SELECT name, specialization, available_days, time_slots 
+                FROM doctors WHERE specialization LIKE ? OR specialization LIKE ? 
+                LIMIT 3
+            """, (f"%{specialty}%", f"%{specialty[:-1]}%")).fetchall()
+            conn.close()
+            
+            if doctors:
+                response = f"**{specialty.title()} Specialists Available:**\n\n"
+                for doc in doctors:
+                    response += f"👨‍⚕️ **Dr. {doc['name']}**\n"
+                    response += f"• Specialty: {doc['specialization']}\n"
+                    response += f"• Available: {doc['available_days']}\n"
+                    response += f"• Timings: {doc['time_slots']}\n\n"
+                response += "Visit **'Doctors'** page to book appointment with any of these specialists."
+                return response
+            else:
+                return f"**Specialist Search:**\n\nWe currently don't have {specialty} specialists available.\n\n**Suggestions:**\n1. Check back later for new doctors\n2. Contact support for referrals\n3. Try searching for similar specialties\n\n**Alternative:** Visit 'Doctors' page to see all available specialists."
 
-    # ========== DEFAULT ==========
-    return """
-    <b>What can I help with?</b><br>
-    Try asking about:<br>
-    • 👨‍⚕️ "Available doctors"<br>
-    • 📅 "Book an appointment"<br>
-    • 🤒 "I have a toothache"<br>
-    • 🕒 "Clinic hours"
-    """
+    # ========== GENERAL HELP ==========
+    help_keywords = ["help", "what can you do", "how can you help", "capabilities", 
+                    "features", "assist", "guide", "what help", "need help"]
+    
+    for keyword in help_keywords:
+        if keyword in message_lower:
+            return "**How I Can Help You:**\n\n🔍 **Find Doctors:** Search by specialty\n📅 **Book Appointments:** Easy scheduling\n🗓️ **Manage Bookings:** View, cancel, reschedule\nℹ️ **Clinic Info:** Hours, contact, location\n💊 **Medication Guidance:** General information\n🤒 **Symptom Check:** Basic health guidance\n📞 **Support:** Contact information\n\n**Ask me anything about:**\n• Booking appointments\n• Finding doctors\n• Clinic information\n• Basic health questions"
+
+    # ========== DEFAULT RESPONSES ==========
+    default_responses = [
+        "I'm here to help with medical appointments and healthcare information. Could you be more specific about what you need help with?",
+        
+        "I can help you with:\n• Booking appointments with doctors\n• Finding specialists by category\n• Checking appointment status\n• Basic medical guidance\n• Clinic hours and contact info\n\nWhat would you like to know?",
+        
+        "I'm your MediBook assistant! I specialize in helping with appointment booking, doctor information, and basic healthcare queries. How can I assist you today?",
+        
+        "Let me help you! I can guide you through booking appointments, finding the right doctor, or answering questions about our services. What would you like to know?",
+        
+        "I understand you're looking for information. Could you tell me more about what you need help with? I can assist with:\n• Appointment booking\n• Doctor search\n• Clinic information\n• General health questions"
+    ]
+    
+    return random.choice(default_responses)
 
 def log_chat(user_id, user_message, ai_response):
     """Log chat conversations to database"""
@@ -314,28 +431,29 @@ def log_chat(user_id, user_message, ai_response):
     except Exception as e:
         print(f"Error logging chat: {e}")
 
+# -------------------- MAIN ROUTES --------------------
 @app.route("/")
 def index():
     conn = get_db()
+    doctors_count = conn.execute("SELECT COUNT(*) as count FROM doctors").fetchone()["count"]
+    appointments_count = conn.execute("SELECT COUNT(*) as count FROM appointments").fetchone()["count"]
+    users_count = conn.execute("SELECT COUNT(*) as count FROM users WHERE role='user'").fetchone()["count"]
     
-    # Get stats for dashboard
-    users_count = conn.execute("SELECT COUNT(*) as total FROM users WHERE role='user'").fetchone()["total"]
-    doctors_count = conn.execute("SELECT COUNT(*) as total FROM doctors").fetchone()["total"]
-    appointments_count = conn.execute("SELECT COUNT(*) as total FROM appointments WHERE status!='Cancelled'").fetchone()["total"]
-    
-    # Get some doctors for display
-    doctors = conn.execute("SELECT * FROM doctors ORDER BY id DESC LIMIT 3").fetchall()
-    
-    # Get today's booked slots count
+    # Get today's booked slots for doctors
     today = datetime.now().strftime("%Y-%m-%d")
-    booked_slots = conn.execute("SELECT COUNT(*) as count FROM appointments WHERE date = ? AND status != 'Cancelled'", (today,)).fetchone()["count"]
+    booked_slots = conn.execute("""
+        SELECT doctor_id, COUNT(*) as booked_count 
+        FROM appointments 
+        WHERE date = ? AND status != 'Cancelled'
+        GROUP BY doctor_id
+    """, (today,)).fetchall()
     
     conn.close()
     
     stats = {
-        "users": users_count,
         "doctors": doctors_count,
-        "appointments": appointments_count
+        "appointments": appointments_count,
+        "specializations": 15
     }
     
     return render_template("index.html", 
@@ -344,84 +462,23 @@ def index():
                          booked_slots=booked_slots)
 
 
-@app.route("/about")
-def about():
-    """About page route"""
-    return render_template("about.html")
-
-
-@app.route("/contact", methods=["GET", "POST"])
-def contact():
-    """Contact page route"""
-    if request.method == "POST":
-        name = request.form.get("name")
-        email = request.form.get("email")
-        message = request.form.get("message")
-        
-        if not name or not email or not message:
-            flash("❌ Please fill out all fields.", "danger")
-            return redirect("/contact")
-            
-        # Send notification email to the admin/support
-        send_email(
-            f"New Contact Message from {name}",
-            app.config['MAIL_USERNAME'],
-            f"""
-            <h2>New Contact Inquiry</h2>
-            <p><b>Name:</b> {name}</p>
-            <p><b>Email:</b> {email}</p>
-            <p><b>Message:</b></p>
-            <div style="background: #f4f4f4; padding: 15px; border-radius: 8px;">
-                {message}
-            </div>
-            """
-        )
-        
-        flash("✅ Your message has been sent successfully!", "success")
-        return redirect("/contact")
-        
-    return render_template("contact.html")
-
-
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        name = request.form.get("name", "").strip()
-        email = request.form.get("email", "").strip()
-        password = request.form.get("password", "")
-
-        # Backend Validation
-        if not name or not email or not password:
-            flash("❌ All fields are required!", "danger")
-            return redirect("/register")
-        
-        if len(password) < 8:
-            flash("❌ Password must be at least 8 characters long!", "danger")
-            return redirect("/register")
-
-        hashed_password = generate_password_hash(password)
+        name = request.form["name"]
+        email = request.form["email"]
+        password = generate_password_hash(request.form["password"])
 
         try:
             conn = get_db()
             conn.execute("INSERT INTO users(name,email,password) VALUES(?,?,?)",
-                         (name, email, hashed_password))
+                         (name, email, password))
             conn.commit()
             conn.close()
-            
-            # Send Welcome Email
-            send_email(
-                "Welcome to MediBook! 🩺",
-                email,
-                f"<h2>Hello {name}!</h2><p>Thank you for joining MediBook. Your account is now active.</p><p>You can now book appointments with our world-class specialists.</p><br><a href='#' style='padding:10px 20px; background:#4f46e5; color:white; text-decoration:none; border-radius:10px;'>Go to Dashboard</a>"
-            )
-            
             flash("✅ Registration successful! Please login.", "success")
             return redirect("/login")
-        except sqlite3.IntegrityError:
+        except:
             flash("❌ Email already exists!", "danger")
-            return redirect("/register")
-        except Exception as e:
-            flash(f"❌ An error occurred: {str(e)}", "danger")
             return redirect("/register")
 
     return render_template("register.html")
@@ -430,12 +487,8 @@ def register():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        email = request.form.get("email", "").strip()
-        password = request.form.get("password", "")
-
-        if not email or not password:
-            flash("❌ Email and password are required!", "danger")
-            return redirect("/login")
+        email = request.form["email"]
+        password = request.form["password"]
 
         conn = get_db()
         user = conn.execute("SELECT * FROM users WHERE email=?", (email,)).fetchone()
@@ -471,8 +524,6 @@ def dashboard():
         return redirect("/login")
 
     conn = get_db()
-    
-    # Get all appointments for the user
     appointments = conn.execute("""
         SELECT appointments.*, doctors.name as doctor_name, doctors.specialization as doctor_specialization
         FROM appointments
@@ -480,32 +531,9 @@ def dashboard():
         WHERE appointments.user_id = ?
         ORDER BY appointments.id DESC
     """, (session["user_id"],)).fetchall()
-    
-    # Calculate specific stats
-    today_str = datetime.now().strftime("%Y-%m-%d")
-    today_count = conn.execute("SELECT COUNT(*) as count FROM appointments WHERE user_id=? AND date=? AND status!='Cancelled'", (session["user_id"], today_str)).fetchone()["count"]
-    completed_count = conn.execute("SELECT COUNT(*) as count FROM appointments WHERE user_id=? AND status='Completed'", (session["user_id"],)).fetchone()["count"]
-    pending_count = conn.execute("SELECT COUNT(*) as count FROM appointments WHERE user_id=? AND status='Pending'", (session["user_id"],)).fetchone()["count"]
-    
-    # Get the "Next" upcoming appointment
-    next_appt = conn.execute("""
-        SELECT a.date, a.time, d.name as doctor_name 
-        FROM appointments a 
-        JOIN doctors d ON a.doctor_id = d.id 
-        WHERE a.user_id = ? AND a.status != 'Cancelled' 
-        AND (a.date > date('now') OR (a.date = date('now') AND a.time >= time('now')))
-        ORDER BY a.date ASC, a.time ASC 
-        LIMIT 1
-    """, (session["user_id"],)).fetchone()
-    
     conn.close()
 
-    return render_template("user_dashboard.html", 
-                          appointments=appointments,
-                          today_count=today_count,
-                          completed_count=completed_count,
-                          pending_count=pending_count,
-                          next_appt=next_appt)
+    return render_template("user_dashboard.html", appointments=appointments)
 
 
 @app.route("/doctors")
@@ -593,45 +621,16 @@ def book_appointment(doctor_id):
             """, (session["user_id"], doctor_id, date, time, "Pending"))
             conn.commit()
             
-            # Fetch user email for notification
-            user_data = conn.execute("SELECT email, name FROM users WHERE id=?", (session["user_id"],)).fetchone()
-            
-            if user_data:
-                # Wrap email in a try/except so email issues NEVER crash the booking
-                try:
-                    send_email(
-                        "Appointment Requested! 📅",
-                        user_data["email"],
-                        f"""
-                        <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 12px;">
-                            <h2 style="color: #4f46e5;">Booking Request Received</h2>
-                            <p>Hello {user_data['name']},</p>
-                            <p>Your appointment request has been successfully submitted. Here are the details:</p>
-                            <div style="background: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                                <p style="margin: 5px 0;"><b>Doctor:</b> {doctor['name']}</p>
-                                <p style="margin: 5px 0;"><b>Date:</b> {date}</p>
-                                <p style="margin: 5px 0;"><b>Time:</b> {time}</p>
-                                <p style="margin: 5px 0;"><b>Status:</b> <span style="color: #eab308; font-weight: bold;">PENDING</span></p>
-                            </div>
-                        </div>
-                        """
-                    )
-                except Exception as email_err:
-                    print(f"⚠️ Email could not be initiated: {email_err}")
-
             flash("✅ Appointment booked successfully!", "success")
             
         except sqlite3.IntegrityError as e:
+            # This catches the unique constraint violation
             if "unique_doctor_time_slot" in str(e):
                 flash("❌ This time slot was just booked by someone else. Please choose another time.", "danger")
             else:
-                flash("❌ An error occurred with the database. Please try again.", "danger")
-        except Exception as e:
-            print(f"❌ Critical Booking Error: {e}")
-            flash("❌ A system error occurred. Your booking might not have been saved.", "danger")
-        finally:
-            conn.close()
-            
+                flash("❌ An error occurred. Please try again.", "danger")
+        
+        conn.close()
         return redirect("/dashboard")
 
     # GET request - show booking form
@@ -643,26 +642,38 @@ def book_appointment(doctor_id):
         ORDER BY date, time
     """, (doctor_id,)).fetchall()
     
-    # Get user's own appointments to highlight conflicts
+    # Get user's upcoming appointments
     user_upcoming_data = conn.execute("""
-        SELECT date, time FROM appointments 
+        SELECT date, time, doctors.name as doctor_name 
+        FROM appointments 
+        JOIN doctors ON doctors.id = appointments.doctor_id
         WHERE user_id = ? AND status != 'Cancelled'
         AND date >= date('now')
+        ORDER BY date, time
     """, (session["user_id"],)).fetchall()
-    
-    # Convert Row objects to dictionaries so they can be JSON serialized in the template
-    booked_slots_list = [dict(row) for row in booked_slots_data]
-    user_upcoming_list = [dict(row) for row in user_upcoming_data]
     
     # Get today's date for min attribute
     today = datetime.now().strftime("%Y-%m-%d")
+    
+    # Convert to regular dictionaries
+    booked_slots = []
+    for slot in booked_slots_data:
+        booked_slots.append({"date": slot["date"], "time": slot["time"]})
+    
+    user_upcoming = []
+    for app in user_upcoming_data:
+        user_upcoming.append({
+            "date": app["date"], 
+            "time": app["time"],
+            "doctor_name": app["doctor_name"]
+        })
     
     conn.close()
     
     return render_template("book_appointment.html", 
                          doctor=doctor, 
-                         booked_slots=booked_slots_list,
-                         user_upcoming=user_upcoming_list,
+                         booked_slots=booked_slots,
+                         user_upcoming=user_upcoming,
                          today=today)
 
 
@@ -729,38 +740,10 @@ def cancel_appointment(appointment_id):
         return redirect("/login")
 
     conn = get_db()
-    # Get appointment info for the email
-    appointment_data = conn.execute("""
-        SELECT users.email, users.name as user_name, doctors.name as doctor_name, appointments.date, appointments.time 
-        FROM appointments 
-        JOIN users ON users.id = appointments.user_id 
-        JOIN doctors ON doctors.id = appointments.doctor_id 
-        WHERE appointments.id = ? AND appointments.user_id = ?
-    """, (appointment_id, session["user_id"])).fetchone()
-
     conn.execute("UPDATE appointments SET status='Cancelled' WHERE id=? AND user_id=?",
                  (appointment_id, session["user_id"]))
     conn.commit()
     conn.close()
-
-    if appointment_data:
-        send_email(
-            "Appointment Cancelled ❌",
-            appointment_data["email"],
-            f"""
-            <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 12px;">
-                <h2 style="color: #ef4444;">Appointment Cancelled</h2>
-                <p>Hello {appointment_data['user_name']},</p>
-                <p>Your appointment has been successfully cancelled as requested.</p>
-                <div style="background: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                    <p style="margin: 5px 0;"><b>Doctor:</b> Dr. {appointment_data['doctor_name']}</p>
-                    <p style="margin: 5px 0;"><b>Date:</b> {appointment_data['date']}</p>
-                    <p style="margin: 5px 0;"><b>Time:</b> {appointment_data['time']}</p>
-                </div>
-                <p>If you wish to book a new appointment, please visit our website.</p>
-            </div>
-            """
-        )
 
     flash("✅ Appointment cancelled!", "success")
     return redirect("/dashboard")
@@ -804,11 +787,20 @@ def get_suggestions():
     """Get quick suggestion questions"""
     suggestions = [
         "How do I book an appointment?",
-        "How do I cancel an appointment?",
-        "What are the clinic working hours?",
-        "Find a doctor",
-        "View my appointment status",
-        "Contact support"
+        "Find me a cardiologist",
+        "Cancel my appointment",
+        "Clinic working hours",
+        "Contact information",
+        "My appointment status",
+        "What doctors are available?",
+        "How to reschedule appointment?",
+        "Book with a dentist",
+        "Emergency contact",
+        "Medicine for headache",
+        "Fever and cough symptoms",
+        "Clinic location",
+        "Appointment fees",
+        "Available time slots"
     ]
     
     return jsonify({'suggestions': suggestions})
@@ -832,14 +824,8 @@ def admin_dashboard():
         JOIN users ON users.id = appointments.user_id
         JOIN doctors ON doctors.id = appointments.doctor_id
         ORDER BY appointments.id DESC
-        LIMIT 50
+        LIMIT 20
     """).fetchall()
-
-    # Enhanced Admin Stats
-    today_str = datetime.now().strftime("%Y-%m-%d")
-    today_appts = conn.execute("SELECT COUNT(*) as total FROM appointments WHERE date = ? AND status != 'Cancelled'", (today_str,)).fetchone()["total"]
-    pending_appts = conn.execute("SELECT COUNT(*) as total FROM appointments WHERE status = 'Pending'").fetchone()["total"]
-    completed_appts = conn.execute("SELECT COUNT(*) as total FROM appointments WHERE status = 'Completed'").fetchone()["total"]
     
     # Get all doctors for display
     doctors = conn.execute("SELECT * FROM doctors ORDER BY id DESC").fetchall()
@@ -849,9 +835,7 @@ def admin_dashboard():
     return render_template("admin_dashboard.html",
                            users_count=users_count,
                            doctors_count=doctors_count,
-                           today_appts=today_appts,
-                           pending_appts=pending_appts,
-                           completed_appts=completed_appts,
+                           appointments_count=appointments_count,
                            appointments=appointments,
                            doctors=doctors)
 
@@ -889,128 +873,67 @@ def update_status(appointment_id):
     status = request.form["status"]
 
     conn = get_db()
-    # Get user email and appointment info before update
-    appointment_data = conn.execute("""
-        SELECT users.email, users.name as user_name, doctors.name as doctor_name, appointments.date, appointments.time 
-        FROM appointments 
-        JOIN users ON users.id = appointments.user_id 
-        JOIN doctors ON doctors.id = appointments.doctor_id 
-        WHERE appointments.id = ?
-    """, (appointment_id,)).fetchone()
-    
     conn.execute("UPDATE appointments SET status=? WHERE id=?", (status, appointment_id))
     conn.commit()
     conn.close()
-    
-    if appointment_data:
-        status_color = "#22c55e" if status == "Confirmed" else "#ef4444"
-        send_email(
-            f"Appointment {status}! 🩺",
-            appointment_data["email"],
-            f"""
-            <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 12px;">
-                <h2 style="color: {status_color};">Appointment {status}</h2>
-                <p>Hello {appointment_data['user_name']},</p>
-                <p>The status of your appointment with <b>Dr. {appointment_data['doctor_name']}</b> has been updated.</p>
-                <div style="background: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                    <p style="margin: 5px 0;"><b>Date:</b> {appointment_data['date']}</p>
-                    <p style="margin: 5px 0;"><b>Time:</b> {appointment_data['time']}</p>
-                    <p style="margin: 5px 0;"><b>New Status:</b> <span style="color: {status_color}; text-transform: uppercase; font-weight: bold;">{status}</span></p>
-                </div>
-                {"<p>We look forward to seeing you!</p>" if status == "Confirmed" else "<p>If you have any questions, please contact our support team.</p>"}
-            </div>
-            """
-        )
-    
-    flash(f"✅ Appointment status updated to {status}!", "success")
+
+    flash("✅ Status updated!", "success")
     return redirect("/admin")
 
-@app.route("/admin/delete-appointment/<int:appointment_id>", methods=["POST"])
-def delete_appointment(appointment_id):
+
+# -------------------- EXTRA: Add more doctors route --------------------
+@app.route("/add-more-doctors")
+def add_more_doctors():
     if "user_id" not in session or session.get("role") != "admin":
         return redirect("/login")
     
+    extra_doctors = [
+        ("Dr. Lisa Wang", "Psychiatrist", "Mon, Wed, Fri", "10:00 AM - 2:00 PM, 4:00 PM - 7:00 PM"),
+        ("Dr. Raj Patel", "ENT Specialist", "Tue, Thu, Sat", "9:00 AM - 1:00 PM, 3:00 PM - 6:00 PM"),
+        ("Dr. Maria Garcia", "Ophthalmologist", "Mon, Tue, Thu, Fri", "8:30 AM - 12:30 PM, 2:30 PM - 5:30 PM")
+    ]
+    
     conn = get_db()
-    conn.execute("DELETE FROM appointments WHERE id=?", (appointment_id,))
+    for doctor in extra_doctors:
+        try:
+            conn.execute("""
+                INSERT INTO doctors(name, specialization, available_days, time_slots)
+                VALUES(?,?,?,?)
+            """, doctor)
+        except:
+            continue
+    
     conn.commit()
     conn.close()
     
-    flash("🗑️ Appointment permanently deleted!", "success")
+    flash("✅ Additional doctors added successfully!", "success")
     return redirect("/admin")
 
-@app.route("/admin/delete-doctor/<int:doctor_id>", methods=["POST"])
-def delete_doctor(doctor_id):
-    if "user_id" not in session or session.get("role") != "admin":
-        return redirect("/login")
-    
-    conn = get_db()
-    # Also delete appointments associated with this doctor to avoid foreign key/logic issues
-    conn.execute("DELETE FROM appointments WHERE doctor_id=?", (doctor_id,))
-    conn.execute("DELETE FROM doctors WHERE id=?", (doctor_id,))
-    conn.commit()
-    conn.close()
-    
-    flash("🗑️ Doctor and their associated appointments deleted!", "success")
-    return redirect("/admin")
 
-@app.route("/admin/export-appointments")
-def export_appointments():
-    """Export appointments from the last 30 days as CSV"""
-    if "user_id" not in session or session.get("role") != "admin":
-        return redirect("/login")
-
-    conn = get_db()
-    # Fetch data for the last 30 days
-    appointments = conn.execute("""
-        SELECT 
-            a.id, 
-            u.name as patient_name, 
-            u.email as patient_email,
-            d.name as doctor_name, 
-            a.date, 
-            a.time, 
-            a.status
-        FROM appointments a
-        JOIN users u ON u.id = a.user_id
-        JOIN doctors d ON d.id = a.doctor_id
-        WHERE a.date >= date('now', '-30 days')
-        ORDER BY a.date DESC
-    """).fetchall()
-    conn.close()
-
-    # Generate CSV in memory
-    output = io.StringIO()
-    writer = csv.writer(output)
-    
-    # Header row
-    writer.writerow(['ID', 'Patient Name', 'Patient Email', 'Doctor Name', 'Date', 'Time', 'Status'])
-    
-    # Data rows
-    for row in appointments:
-        writer.writerow([
-            row['id'], 
-            row['patient_name'], 
-            row['patient_email'],
-            row['doctor_name'], 
-            row['date'], 
-            row['time'], 
-            row['status']
-        ])
-
-    output.seek(0)
-    
-    # Return as downloadable file
-    filename = f"medibook_report_{datetime.now().strftime('%Y%m%d')}.csv"
-    return Response(
-        output.getvalue(),
-        mimetype="text/csv",
-        headers={"Content-disposition": f"attachment; filename={filename}"}
-    )
+# -------------------- SIMPLE PAGES --------------------
+@app.route("/about")
+def about():
+    return render_template("about.html")
 
 
-# Initialize files and DB on startup (required for Gunicorn/Production)
-setup_static_files()
-init_db()
+@app.route("/contact")
+def contact():
+    return render_template("contact.html")
+
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    # Initialize database
+    init_db()
+    
+    # Setup static files
+    setup_static_files()
+    
+    # Get port from environment variable (Render provides this)
+    port = int(os.environ.get("PORT", 5000))
+    
+    # Run the app
+    app.run(
+        host='0.0.0.0',
+        port=port,
+        debug=True
+    )
